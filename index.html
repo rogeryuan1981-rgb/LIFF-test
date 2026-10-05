@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#06c755">
+  <title>拉娃小幫手｜服務查詢</title>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   "Noto Sans TC", sans-serif;
+      color: #18302a;
+      background: #f3faf7;
+    }
+
+    main {
+      max-width: 680px;
+      min-height: 100vh;
+      margin: auto;
+      padding: 20px 18px 40px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    #status {
+      padding: 6px 10px;
+      border: 1px solid #d7e6df;
+      border-radius: 999px;
+      background: white;
+      color: #60716a;
+      font-size: 12px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 34px;
+    }
+
+    .description {
+      margin: 0 0 20px;
+      color: #60716a;
+      line-height: 1.6;
+    }
+
+    input {
+      width: 100%;
+      height: 56px;
+      padding: 0 18px;
+      border: 2px solid #d7e6df;
+      border-radius: 16px;
+      background: white;
+      font-size: 16px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #06c755;
+      box-shadow: 0 0 0 4px rgba(6, 199, 85, .12);
+    }
+
+    .categories {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      margin: 14px 0 20px;
+    }
+
+    .category {
+      flex: none;
+      padding: 9px 14px;
+      border: 1px solid #d7e6df;
+      border-radius: 999px;
+      background: white;
+      color: #60716a;
+      cursor: pointer;
+    }
+
+    .category.active {
+      border-color: #06c755;
+      background: #06c755;
+      color: white;
+    }
+
+    #resultCount {
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .results {
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      padding: 18px;
+      border: 1px solid #d7e6df;
+      border-radius: 18px;
+      background: white;
+      box-shadow: 0 8px 24px rgba(20, 75, 55, .07);
+    }
+
+    .tag {
+      color: #05813a;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .card h2 {
+      margin: 6px 0 8px;
+      font-size: 19px;
+    }
+
+    .card p {
+      margin: 0;
+      color: #60716a;
+      line-height: 1.6;
+    }
+
+    .action {
+      margin-top: 12px !important;
+      padding-top: 12px;
+      border-top: 1px solid #e4eee9;
+      color: #18302a !important;
+    }
+
+    .line-button {
+      width: 100%;
+      height: 52px;
+      margin-top: 20px;
+      border: 0;
+      border-radius: 15px;
+      background: #06c755;
+      color: white;
+      font-weight: 800;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .empty {
+      padding: 30px;
+      border: 1px dashed #c7d9d1;
+      border-radius: 18px;
+      background: white;
+      color: #60716a;
+      text-align: center;
+    }
+
+    footer {
+      margin-top: 20px;
+      color: #718079;
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+<main>
+  <header>
+    <div class="brand">拉娃小幫手</div>
+    <div id="status">一般網頁模式</div>
+  </header>
+
+  <h1>想查什麼？</h1>
+
+  <p class="description">
+    輸入關鍵字，快速找到常見服務資訊。
+    查詢內容不會保存，也不需要提供個人資料。
+  </p>
+
+  <input
+    id="search"
+    type="search"
+    placeholder="例如：進度、補件、變更資料"
+    autocomplete="off"
+  >
+
+  <div id="categories" class="categories"></div>
+
+  <div id="resultCount"></div>
+  <div id="results" class="results"></div>
+
+  <button id="closeButton" class="line-button">
+    回到 LINE 詢問
+  </button>
+
+  <footer>
+    本頁僅提供公開資訊；涉及個人案件時，請由 LINE 客服協助。
+  </footer>
+</main>
+
+<script>
+  /*
+   * 在 LINE Developers 建立 LIFF App 後，
+   * 將 YOUR_LIFF_ID 換成真正的 LIFF ID。
+   */
+  const LIFF_ID = "YOUR_LIFF_ID";
+
+  /*
+   * 示範資料：之後直接修改這個陣列即可。
+   */
+  const services = [
+    {
+      category: "申請",
+      title: "新服務申請",
+      keywords: ["申請", "新辦", "第一次"],
+      description: "準備基本資料後，由客服協助確認申請內容。",
+      action: "請回到 LINE 對話傳送「我要申請」。"
+    },
+    {
+      category: "進度",
+      title: "案件進度查詢",
+      keywords: ["進度", "案件", "狀態", "處理到哪"],
+      description: "確認案件目前是已收件、處理中、待補件或已完成。",
+      action: "請準備案件編號，再由客服協助查詢。"
+    },
+    {
+      category: "文件",
+      title: "補件與文件準備",
+      keywords: ["補件", "文件", "資料", "缺件"],
+      description: "查看常見必備資料，避免因為缺少文件延長時間。",
+      action: "不確定缺少什麼時，請將案件編號傳給客服。"
+    },
+    {
+      category: "資料異動",
+      title: "聯絡資料變更",
+      keywords: ["變更", "電話", "地址", "姓名"],
+      description: "電話、地址或其他聯絡資料異動時的處理方式。",
+      action: "基於個資安全，請透過客服完成身分確認。"
+    },
+    {
+      category: "客服",
+      title: "聯繫真人客服",
+      keywords: ["客服", "真人", "聯絡", "問題"],
+      description: "找不到答案，或需要個別案件協助時使用。",
+      action: "回到 LINE 對話後，直接輸入問題即可。"
+    }
+  ];
+
+  const searchInput = document.querySelector("#search");
+  const categoryBox = document.querySelector("#categories");
+  const resultBox = document.querySelector("#results");
+  const resultCount = document.querySelector("#resultCount");
+  const statusBox = document.querySelector("#status");
+
+  let selectedCategory = "全部";
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[character]));
+  }
+
+  function createCategories() {
+    const categories = [
+      "全部",
+      ...new Set(services.map(item => item.category))
+    ];
+
+    categoryBox.innerHTML = categories.map(category => `
+      <button
+        class="category ${category === "全部" ? "active" : ""}"
+        data-category="${escapeHtml(category)}"
+      >
+        ${escapeHtml(category)}
+      </button>
+    `).join("");
+  }
+
+  function renderResults() {
+    const keyword = searchInput.value.trim().toLowerCase();
+
+    const filtered = services.filter(item => {
+      const matchesCategory =
+        selectedCategory === "全部" ||
+        item.category === selectedCategory;
+
+      const searchableText = [
+        item.category,
+        item.title,
+        item.description,
+        ...item.keywords
+      ].join(" ").toLowerCase();
+
+      return matchesCategory &&
+        (!keyword || searchableText.includes(keyword));
+    });
+
+    resultCount.textContent = `找到 ${filtered.length} 筆資料`;
+
+    if (!filtered.length) {
+      resultBox.innerHTML = `
+        <div class="empty">
+          找不到符合的資訊。<br>
+          請更換關鍵字或直接詢問客服。
+        </div>
+      `;
+      return;
+    }
+
+    resultBox.innerHTML = filtered.map(item => `
+      <article class="card">
+        <div class="tag">${escapeHtml(item.category)}</div>
+        <h2>${escapeHtml(item.title)}</h2>
+        <p>${escapeHtml(item.description)}</p>
+        <p class="action">
+          <strong>下一步：</strong>
+          ${escapeHtml(item.action)}
+        </p>
+      </article>
+    `).join("");
+  }
+
+  categoryBox.addEventListener("click", event => {
+    const button = event.target.closest("[data-category]");
+    if (!button) return;
+
+    selectedCategory = button.dataset.category;
+
+    document.querySelectorAll(".category").forEach(element => {
+      element.classList.toggle("active", element === button);
+    });
+
+    renderResults();
+  });
+
+  searchInput.addEventListener("input", renderResults);
+
+  document.querySelector("#closeButton").addEventListener("click", () => {
+    if (window.liff && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      alert("請回到 LINE 官方帳號對話詢問客服。");
+    }
+  });
+
+  async function initializeLiff() {
+    if (
+      LIFF_ID === "YOUR_LIFF_ID" ||
+      typeof liff === "undefined"
+    ) {
+      return;
+    }
+
+    try {
+      statusBox.textContent = "LINE 連線中";
+
+      await liff.init({
+        liffId: LIFF_ID,
+        withLoginOnExternalBrowser: true
+      });
+
+      statusBox.textContent = liff.isInClient()
+        ? "LINE 內開啟"
+        : "LINE 已連線";
+
+    } catch (error) {
+      console.error(error);
+      statusBox.textContent = "一般網頁模式";
+    }
+  }
+
+  createCategories();
+  renderResults();
+  initializeLiff();
+</script>
+</body>
+</html>
