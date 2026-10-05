@@ -2,387 +2,228 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#06c755">
   <title>拉娃小幫手｜服務查詢</title>
-
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
   <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
-                   "Noto Sans TC", sans-serif;
-      color: #18302a;
-      background: #f3faf7;
-    }
-
-    main {
-      max-width: 680px;
-      min-height: 100vh;
-      margin: auto;
-      padding: 20px 18px 40px;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 28px;
-    }
-
-    .brand {
-      font-size: 18px;
-      font-weight: 800;
-    }
-
-    #status {
-      padding: 6px 10px;
-      border: 1px solid #d7e6df;
-      border-radius: 999px;
-      background: white;
-      color: #60716a;
-      font-size: 12px;
-    }
-
-    h1 {
-      margin: 0 0 8px;
-      font-size: 34px;
-    }
-
-    .description {
-      margin: 0 0 20px;
-      color: #60716a;
-      line-height: 1.6;
-    }
-
-    input {
-      width: 100%;
-      height: 56px;
-      padding: 0 18px;
-      border: 2px solid #d7e6df;
-      border-radius: 16px;
-      background: white;
-      font-size: 16px;
-      outline: none;
-    }
-
-    input:focus {
-      border-color: #06c755;
-      box-shadow: 0 0 0 4px rgba(6, 199, 85, .12);
-    }
-
-    .categories {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      margin: 14px 0 20px;
-    }
-
-    .category {
-      flex: none;
-      padding: 9px 14px;
-      border: 1px solid #d7e6df;
-      border-radius: 999px;
-      background: white;
-      color: #60716a;
-      cursor: pointer;
-    }
-
-    .category.active {
-      border-color: #06c755;
-      background: #06c755;
-      color: white;
-    }
-
-    #resultCount {
-      margin-bottom: 10px;
-      font-weight: 700;
-    }
-
-    .results {
-      display: grid;
-      gap: 12px;
-    }
-
-    .card {
-      padding: 18px;
-      border: 1px solid #d7e6df;
-      border-radius: 18px;
-      background: white;
-      box-shadow: 0 8px 24px rgba(20, 75, 55, .07);
-    }
-
-    .tag {
-      color: #05813a;
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .card h2 {
-      margin: 6px 0 8px;
-      font-size: 19px;
-    }
-
-    .card p {
-      margin: 0;
-      color: #60716a;
-      line-height: 1.6;
-    }
-
-    .action {
-      margin-top: 12px !important;
-      padding-top: 12px;
-      border-top: 1px solid #e4eee9;
-      color: #18302a !important;
-    }
-
-    .line-button {
-      width: 100%;
-      height: 52px;
-      margin-top: 20px;
-      border: 0;
-      border-radius: 15px;
-      background: #06c755;
-      color: white;
-      font-weight: 800;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .empty {
-      padding: 30px;
-      border: 1px dashed #c7d9d1;
-      border-radius: 18px;
-      background: white;
-      color: #60716a;
-      text-align: center;
-    }
-
-    footer {
-      margin-top: 20px;
-      color: #718079;
-      font-size: 12px;
-      line-height: 1.6;
-      text-align: center;
-    }
+    :root { --green:#06c755; --green-dark:#05813a; --ink:#18302a; --muted:#61726b; --line:#d9e8e1; --wash:#f3faf7; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif; color:var(--ink); background:var(--wash); }
+    button,input { font:inherit; }
+    main { width:min(100%,760px); min-height:100vh; margin:auto; padding:calc(18px + env(safe-area-inset-top)) 18px calc(32px + env(safe-area-inset-bottom)); }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
+    .brand { font-size:18px; font-weight:800; }
+    .status { padding:7px 10px; border:1px solid var(--line); border-radius:999px; background:white; color:var(--muted); font-size:12px; }
+    h1 { margin:0 0 8px; font-size:clamp(30px,8vw,42px); letter-spacing:-.04em; }
+    .lead { margin:0 0 20px; color:var(--muted); line-height:1.65; }
+    .search { width:100%; min-height:56px; padding:0 18px; border:2px solid var(--line); border-radius:16px; background:white; color:var(--ink); outline:none; box-shadow:0 10px 28px rgba(22,72,55,.08); }
+    .search:focus { border-color:var(--green); box-shadow:0 0 0 4px rgba(6,199,85,.12); }
+    .chips { display:flex; gap:8px; overflow:auto; margin:14px 0 20px; padding-bottom:2px; scrollbar-width:none; }
+    .chip { flex:none; padding:9px 14px; border:1px solid var(--line); border-radius:999px; background:white; color:var(--muted); cursor:pointer; }
+    .chip.active { border-color:var(--green); background:var(--green); color:white; }
+    .result-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .result-head h2 { margin:0; font-size:16px; }
+    .source { color:var(--muted); font-size:11px; }
+    .results { display:grid; gap:11px; }
+    details { overflow:hidden; border:1px solid var(--line); border-radius:17px; background:white; box-shadow:0 7px 22px rgba(22,72,55,.055); }
+    summary { position:relative; padding:17px 46px 17px 17px; cursor:pointer; list-style:none; }
+    summary::-webkit-details-marker { display:none; }
+    summary::after { content:"＋"; position:absolute; right:17px; top:50%; translate:0 -50%; color:var(--green-dark); font-size:22px; }
+    details[open] summary::after { content:"−"; }
+    .tag { display:block; margin-bottom:5px; color:var(--green-dark); font-size:11px; font-weight:800; letter-spacing:.06em; }
+    .question { font-weight:800; line-height:1.45; }
+    .answer { padding:0 17px 17px; border-top:1px solid #edf3f0; }
+    .answer h3 { margin:15px 0 6px; font-size:14px; }
+    .answer p { margin:0; color:#41534c; line-height:1.7; white-space:pre-line; }
+    .empty { padding:32px 16px; border:1px dashed var(--line); border-radius:17px; background:white; color:var(--muted); text-align:center; }
+    .feedback-button { width:100%; min-height:52px; margin-top:18px; border:0; border-radius:15px; background:var(--green); color:white; font-weight:800; cursor:pointer; box-shadow:0 10px 22px rgba(6,199,85,.20); }
+    footer { margin-top:18px; color:var(--muted); font-size:12px; line-height:1.6; text-align:center; }
+    .modal-backdrop { position:fixed; inset:0; z-index:10; display:none; align-items:flex-end; justify-content:center; padding:18px; background:rgba(9,27,21,.46); }
+    .modal-backdrop.show { display:flex; }
+    .modal { width:min(100%,480px); padding:22px; border-radius:22px; background:white; box-shadow:0 24px 60px rgba(0,0,0,.24); }
+    .modal h2 { margin:0 0 8px; font-size:22px; }
+    .modal p { margin:0 0 18px; color:var(--muted); line-height:1.6; }
+    .modal-actions { display:grid; gap:9px; }
+    .modal-actions button { min-height:48px; border-radius:13px; cursor:pointer; font-weight:800; }
+    .yes { border:0; background:var(--green); color:white; }
+    .no { border:1px solid var(--green); background:white; color:var(--green-dark); }
+    .cancel { border:0; background:#f0f4f2; color:var(--muted); }
+    @media (min-width:620px) { main { padding-inline:28px; } .modal-backdrop { align-items:center; } }
   </style>
 </head>
-
 <body>
 <main>
   <header>
     <div class="brand">拉娃小幫手</div>
-    <div id="status">一般網頁模式</div>
+    <div id="status" class="status">一般網頁模式</div>
   </header>
 
-  <h1>想查什麼？</h1>
+  <h1>服務問題查詢</h1>
+  <p class="lead">輸入問題或關鍵字，查看常見處置方式。查詢內容不會保存。</p>
+  <input id="search" class="search" type="search" placeholder="例如：辨識失敗、體溫、血壓、網路" autocomplete="off">
+  <div id="chips" class="chips" aria-label="問題分類"></div>
 
-  <p class="description">
-    輸入關鍵字，快速找到常見服務資訊。
-    查詢內容不會保存，也不需要提供個人資料。
-  </p>
+  <div class="result-head">
+    <h2 id="resultCount"></h2>
+    <span class="source">依問題彙整資料整理</span>
+  </div>
+  <section id="results" class="results" aria-live="polite"></section>
 
-  <input
-    id="search"
-    type="search"
-    placeholder="例如：進度、補件、變更資料"
-    autocomplete="off"
-  >
-
-  <div id="categories" class="categories"></div>
-
-  <div id="resultCount"></div>
-  <div id="results" class="results"></div>
-
-  <button id="closeButton" class="line-button">
-    回到 LINE 詢問
-  </button>
-
-  <footer>
-    本頁僅提供公開資訊；涉及個人案件時，請由 LINE 客服協助。
-  </footer>
+  <button id="feedbackButton" class="feedback-button" type="button">回到 LINE@</button>
+  <footer>如涉及個人資料、設備維修或個別案件，請回到 LINE@ 由客服協助。</footer>
 </main>
 
-<script>
-  /*
-   * 在 LINE Developers 建立 LIFF App 後，
-   * 將 YOUR_LIFF_ID 換成真正的 LIFF ID。
-   */
-  const LIFF_ID = "1234567890-AbcdEfgh";
+<div id="feedbackModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
+  <div class="modal">
+    <h2 id="feedbackTitle">有獲得解答嗎？</h2>
+    <p>選擇後會把結果帶回 LINE@。若尚未解決，客服即可接續協助。</p>
+    <div class="modal-actions">
+      <button class="yes" data-feedback="resolved">有，已經解決</button>
+      <button class="no" data-feedback="unresolved">還沒有，需要客服</button>
+      <button class="cancel" data-feedback="cancel">繼續查看</button>
+    </div>
+  </div>
+</div>
 
-  /*
-   * 示範資料：之後直接修改這個陣列即可。
-   */
-  const services = [
-    {
-      category: "申請",
-      title: "新服務申請",
-      keywords: ["申請", "新辦", "第一次"],
-      description: "準備基本資料後，由客服協助確認申請內容。",
-      action: "請回到 LINE 對話傳送「我要申請」。"
-    },
-    {
-      category: "進度",
-      title: "案件進度查詢",
-      keywords: ["進度", "案件", "狀態", "處理到哪"],
-      description: "確認案件目前是已收件、處理中、待補件或已完成。",
-      action: "請準備案件編號，再由客服協助查詢。"
-    },
-    {
-      category: "文件",
-      title: "補件與文件準備",
-      keywords: ["補件", "文件", "資料", "缺件"],
-      description: "查看常見必備資料，避免因為缺少文件延長時間。",
-      action: "不確定缺少什麼時，請將案件編號傳給客服。"
-    },
-    {
-      category: "資料異動",
-      title: "聯絡資料變更",
-      keywords: ["變更", "電話", "地址", "姓名"],
-      description: "電話、地址或其他聯絡資料異動時的處理方式。",
-      action: "基於個資安全，請透過客服完成身分確認。"
-    },
-    {
-      category: "客服",
-      title: "聯繫真人客服",
-      keywords: ["客服", "真人", "聯絡", "問題"],
-      description: "找不到答案，或需要個別案件協助時使用。",
-      action: "回到 LINE 對話後，直接輸入問題即可。"
-    }
+<script>
+  // 建立 LIFF App 後，請將 YOUR_LIFF_ID 換成實際的 LIFF ID。
+  const LIFF_ID = "YOUR_LIFF_ID";
+
+  const faqs = [
+    { category:"身分辨識", question:"長者辨識失敗、很難辨識，或沒有人卻喊出名字", keywords:["臉部辨識","人臉","空氣辨識","偵測不到"], answer:"1. 補傳未戴帽子、口罩或頭巾的清晰正面大頭照，並以 ZIP 或 RAR 壓縮檔寄送。\n2. 與機器人保持在 1 公尺內，五官完整出現在畫面框中。\n3. 刪除機器人內的舊版專案，避免版本衝突。" },
+    { category:"身分辨識", question:"機器人叫錯長者的名字", keywords:["叫錯名字","辨識錯人","名字不對"], answer:"重新拍攝清晰正面照片並上傳後台，再進行模型重新訓練與派發。" },
+    { category:"身分辨識", question:"機器人為什麼稱呼長者為「測試者」", keywords:["測試者","稱謂"], answer:"系統辨識失敗後，如果使用者選擇直接進入測量模式，機器人會以「測試者」稱呼。" },
+    { category:"身分辨識", question:"一開始就出現「請靠近一點」的提示", keywords:["靠近一點","提示太早","語音"], answer:"工程團隊已調整提示語音的觸發時間與邏輯，避免長者剛就定位時過早播放提示。" },
+
+    { category:"數據上傳", question:"量測完成後，資料沒有傳到文健站系統或後台", keywords:["沒有上傳","上傳失敗","資料未傳","文健站系統"], answer:"先確認人臉辨識成功，而且量測結束時有聽到「上傳成功」。未成功辨識者的資料不會上傳。\n文健站系統需提供授權帳密，完成 API 綁定串接。\n如果因連線異常暫時上傳失敗，請先手動補登。" },
+    { category:"數據上傳", question:"後台看不到 AI 建立的生理量測簽核資料", keywords:["督導看不到","送審","簽核","後台未顯示"], answer:"AI 自動建立資料後，照服員仍需進入後台點選「編輯」，再手動按「送審」。完成後，負責人或督導端才會看到審核資料。" },
+
+    { category:"生理量測", question:"體溫顯示 0 度，或體溫量測步驟被跳過", keywords:["體溫0","零度","沒有體溫","跳過體溫"], answer:"確認機器人頭頂的茶葉蛋造型溫度計是否插好。舊版溫度計還需確認電源插頭全程連接，且指示燈有亮起。" },
+    { category:"生理量測", question:"機器人量到的體溫普遍偏高", keywords:["體溫偏高","發熱","額溫正常"], answer:"機器人插電使用時，機身與頭部發熱可能影響感測器。量測時請拔除電源線，無人使用時再充飽電。團隊也會持續記錄特定個案數值，以進行校正。" },
+    { category:"生理量測", question:"AI 血壓和血壓機的數值差距很大或偏低", keywords:["血壓不準","血壓偏高","血壓偏低","數值落差"], answer:"請依資料彙整中的校正方式選擇用藥狀態：有服用高血壓藥物者選「高血壓前期」；未服藥者選「高血壓」；一般正常狀態選「正常」。正確選項有助演算法校正。" },
+    { category:"生理量測", question:"第二次量測覆蓋第一次紀錄，而且沒有自動備註", keywords:["重複量測","覆蓋","自動備註","第二次"], answer:"目前版本尚未提供二次量測自動備註功能。請由照服員暫時手動輸入備註。" },
+
+    { category:"機器人操作", question:"每次量測都要重新輸入身高、體重與年齡", keywords:["重複輸入","身高","體重","年齡","基本資料"], answer:"請先在後台完整建立長者基本資料。之後透過人臉辨識登入，系統就能自動帶入，不需每次重複輸入。" },
+    { category:"機器人操作", question:"輸入基本資料後，系統說數值等於零", keywords:["數值等於零","小數點","身高體重為0"], answer:"身高與體重請輸入整數，不要輸入小數點。系統無法解析小數點時，會將數值判定為 0。" },
+    { category:"機器人操作", question:"換下一位長者時，為什麼不能直接接著辨識", keywords:["下一位","切換長者","重新辨識","退出"], answer:"每位長者完成後都要先退出，再重新辨識下一位。若省略退出步驟，系統可能繼續使用上一位長者的資料。" },
+    { category:"機器人操作", question:"畫面出現「未安裝指定 APP」", keywords:["未安裝指定APP","警告","繼續執行"], answer:"這是系統提醒。直接點選「繼續執行」即可，不會影響系統功能。" },
+    { category:"機器人操作", question:"畫面卡住、叫不起來，或找不到操作選單", keywords:["卡住","主畫面","找不到選單","叫不起來","roflow"], answer:"可在螢幕上由右往左滑，或由上往下滑，回到選單後點選 roflow。\n也可按一下頭頂電源鍵，或長按電源鍵並選擇「退出 roflow」，再回到主選單。" },
+
+    { category:"硬體與網路", question:"機器人的頭一直擺動", keywords:["擺頭","搖晃","頭一直動"], answer:"團隊規劃更換頭部較輕、並具備自動人臉追蹤功能的新版機器人。" },
+    { category:"硬體與網路", question:"機器人頭部下垂，導致臉部難以對焦", keywords:["頭部下垂","脖子","對焦","抬頭"], answer:"從螢幕下拉選單關閉「動作控制」，或將動作設定為「不動」。" },
+    { category:"硬體與網路", question:"機器人音量太大，要去哪裡調整", keywords:["音量","太大聲","聲音"], answer:"從下拉選單調整音量。如果選單遭鎖定，先長按頭頂按鈕，選擇「退出 roflow」，再下拉調整音量。" },
+    { category:"硬體與網路", question:"畫面提示「環境要再亮一點」", keywords:["光線不足","環境亮一點","照明"], answer:"非接觸式影像量測需要充足光線。請移到光線充足的位置，例如面向自然光或照明良好處。" },
+    { category:"硬體與網路", question:"機器人投影到電視需要 HDMI 線嗎", keywords:["投影","電視","HDMI","線材","無線"], answer:"機器人採用無線方式連接電視，不需要另外準備 HDMI 線材。若仍無法連接，可向客服索取示範影片。" },
+    { category:"硬體與網路", question:"現場網路不穩，機器人無法順利量測或上傳", keywords:["網路不穩","斷線","延遲","熱點","連不上網"], answer:"非接觸式影像檢測需要穩定且頻寬充足的網路。請先檢查現場訊號；若網路異常，可暫時改連手機熱點測試。" },
+    { category:"硬體與網路", question:"使用 CHT7656 網路時，資料疑似遭防火牆阻擋", keywords:["CHT7656","防火牆","封包","網域"], answer:"此問題需由團隊協調原民會與電信業者，調整站點 CHT7656 網域的防火牆及連線設定，請回到 LINE@ 聯繫客服。" },
+
+    { category:"行政與帳務", question:"為什麼系統串接需要提供照服員帳號密碼", keywords:["照服員帳密","帳號密碼","授權","API"], answer:"提供授權帳密是系統自動串接文健站平台的必要步驟，用於完成 API 綁定。" },
+    { category:"行政與帳務", question:"專案結束後，電視與機器人會被回收嗎", keywords:["設備回收","財產","財編","專案結束"], answer:"專案結束後，電視與機器人會永久留在文健站使用，不會回收。" },
+    { category:"行政與帳務", question:"雲端手冊或簡報無法直接在線上開啟", keywords:["雲端手冊","簡報打不開","檔案無法開啟","下載"], answer:"開啟雲端連結後，點選「更多動作」，再選擇「下載」。將簡報儲存到電腦資料夾後，再從本機開啟。" },
+    { category:"行政與帳務", question:"量測資料沒有即時推播到長者 LINE", keywords:["LINE推播","沒有收到訊息","Token","額度"], answer:"資料彙整中的案例原因是訊息 Token 額度用盡。由計畫主持人完成核銷及付費程序後，即可恢復推播。" }
   ];
 
-  const searchInput = document.querySelector("#search");
-  const categoryBox = document.querySelector("#categories");
-  const resultBox = document.querySelector("#results");
+  const search = document.querySelector("#search");
+  const chips = document.querySelector("#chips");
+  const results = document.querySelector("#results");
   const resultCount = document.querySelector("#resultCount");
   const statusBox = document.querySelector("#status");
-
+  const modal = document.querySelector("#feedbackModal");
   let selectedCategory = "全部";
+  let lastViewedQuestion = "未指定問題";
 
   function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, character => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    }[character]));
+    return String(value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   }
 
-  function createCategories() {
-    const categories = [
-      "全部",
-      ...new Set(services.map(item => item.category))
-    ];
-
-    categoryBox.innerHTML = categories.map(category => `
-      <button
-        class="category ${category === "全部" ? "active" : ""}"
-        data-category="${escapeHtml(category)}"
-      >
-        ${escapeHtml(category)}
-      </button>
+  function createCategoryButtons() {
+    const categories = ["全部", ...new Set(faqs.map(item => item.category))];
+    chips.innerHTML = categories.map(category => `
+      <button class="chip${category === "全部" ? " active" : ""}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>
     `).join("");
   }
 
-  function renderResults() {
-    const keyword = searchInput.value.trim().toLowerCase();
-
-    const filtered = services.filter(item => {
-      const matchesCategory =
-        selectedCategory === "全部" ||
-        item.category === selectedCategory;
-
-      const searchableText = [
-        item.category,
-        item.title,
-        item.description,
-        ...item.keywords
-      ].join(" ").toLowerCase();
-
-      return matchesCategory &&
-        (!keyword || searchableText.includes(keyword));
+  function render() {
+    const keyword = search.value.trim().toLocaleLowerCase("zh-Hant");
+    const filtered = faqs.filter(item => {
+      const categoryMatch = selectedCategory === "全部" || item.category === selectedCategory;
+      const text = [item.question, item.answer, ...item.keywords].join(" ").toLocaleLowerCase("zh-Hant");
+      return categoryMatch && (!keyword || text.includes(keyword));
     });
 
-    resultCount.textContent = `找到 ${filtered.length} 筆資料`;
-
-    if (!filtered.length) {
-      resultBox.innerHTML = `
-        <div class="empty">
-          找不到符合的資訊。<br>
-          請更換關鍵字或直接詢問客服。
+    resultCount.textContent = `共 ${filtered.length} 筆`;
+    results.innerHTML = filtered.length ? filtered.map((item, index) => `
+      <details data-question="${escapeHtml(item.question)}">
+        <summary>
+          <span class="tag">${escapeHtml(item.category)}</span>
+          <span class="question">${escapeHtml(item.question)}</span>
+        </summary>
+        <div class="answer">
+          <h3>處置方式</h3>
+          <p>${escapeHtml(item.answer)}</p>
         </div>
-      `;
-      return;
-    }
-
-    resultBox.innerHTML = filtered.map(item => `
-      <article class="card">
-        <div class="tag">${escapeHtml(item.category)}</div>
-        <h2>${escapeHtml(item.title)}</h2>
-        <p>${escapeHtml(item.description)}</p>
-        <p class="action">
-          <strong>下一步：</strong>
-          ${escapeHtml(item.action)}
-        </p>
-      </article>
-    `).join("");
+      </details>
+    `).join("") : `<div class="empty">找不到符合的問題。<br>請更換關鍵字，或回到 LINE@ 詢問客服。</div>`;
   }
 
-  categoryBox.addEventListener("click", event => {
+  chips.addEventListener("click", event => {
     const button = event.target.closest("[data-category]");
     if (!button) return;
-
     selectedCategory = button.dataset.category;
-
-    document.querySelectorAll(".category").forEach(element => {
-      element.classList.toggle("active", element === button);
-    });
-
-    renderResults();
+    chips.querySelectorAll(".chip").forEach(item => item.classList.toggle("active", item === button));
+    render();
   });
 
-  searchInput.addEventListener("input", renderResults);
+  search.addEventListener("input", render);
+  results.addEventListener("toggle", event => {
+    if (event.target.open && event.target.dataset.question) lastViewedQuestion = event.target.dataset.question;
+  }, true);
 
-  document.querySelector("#closeButton").addEventListener("click", () => {
-    if (window.liff && liff.isInClient()) {
-      liff.closeWindow();
-    } else {
-      alert("請回到 LINE 官方帳號對話詢問客服。");
+  document.querySelector("#feedbackButton").addEventListener("click", () => modal.classList.add("show"));
+  modal.addEventListener("click", event => {
+    if (event.target === modal) modal.classList.remove("show");
+  });
+
+  async function returnToLine(result) {
+    const resolved = result === "resolved";
+    const message = `${resolved ? "✅ 已獲得解答" : "❓ 尚未獲得解答，需要客服協助"}\n查詢問題：${lastViewedQuestion}`;
+    try {
+      if (window.liff && liff.isInClient()) {
+        await liff.sendMessages([{ type:"text", text:message }]);
+        liff.closeWindow();
+        return;
+      }
+      if (navigator.clipboard) await navigator.clipboard.writeText(message);
+      alert("目前不在 LINE 內開啟。回覆內容已複製，請貼到 LINE@ 對話。\n\n" + message);
+    } catch (error) {
+      console.error(error);
+      alert("無法自動送出訊息，請回到 LINE@ 手動輸入：\n" + message);
     }
+  }
+
+  modal.querySelectorAll("[data-feedback]").forEach(button => {
+    button.addEventListener("click", () => {
+      const result = button.dataset.feedback;
+      modal.classList.remove("show");
+      if (result !== "cancel") returnToLine(result);
+    });
   });
 
   async function initializeLiff() {
-    if (
-      LIFF_ID === "YOUR_LIFF_ID" ||
-      typeof liff === "undefined"
-    ) {
-      return;
-    }
-
+    if (LIFF_ID === "YOUR_LIFF_ID" || !window.liff) return;
     try {
       statusBox.textContent = "LINE 連線中";
-
-      await liff.init({
-        liffId: LIFF_ID,
-        withLoginOnExternalBrowser: true
-      });
-
-      statusBox.textContent = liff.isInClient()
-        ? "LINE 內開啟"
-        : "LINE 已連線";
-
+      await liff.init({ liffId:LIFF_ID, withLoginOnExternalBrowser:true });
+      statusBox.textContent = liff.isInClient() ? "LINE 內開啟" : "LINE 已連線";
     } catch (error) {
       console.error(error);
       statusBox.textContent = "一般網頁模式";
     }
   }
 
-  createCategories();
-  renderResults();
+  createCategoryButtons();
+  render();
   initializeLiff();
 </script>
 </body>
