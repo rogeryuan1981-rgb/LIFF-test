@@ -19,12 +19,18 @@
     .lead { margin:0 0 20px; color:var(--muted); line-height:1.65; }
     .search { width:100%; min-height:56px; padding:0 18px; border:2px solid var(--line); border-radius:16px; background:white; color:var(--ink); outline:none; box-shadow:0 10px 28px rgba(22,72,55,.08); }
     .search:focus { border-color:var(--green); box-shadow:0 0 0 4px rgba(6,199,85,.12); }
-    .chips { display:flex; gap:8px; overflow:auto; margin:14px 0 20px; padding-bottom:2px; scrollbar-width:none; }
-    .chip { flex:none; padding:9px 14px; border:1px solid var(--line); border-radius:999px; background:white; color:var(--muted); cursor:pointer; }
-    .chip.active { border-color:var(--green); background:var(--green); color:white; }
-    .result-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .browse-title { margin:26px 2px 11px; font-size:16px; }
+    .category-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:22px; }
+    .category-grid[hidden], .browse-title[hidden] { display:none; }
+    .category-card { min-height:104px; padding:15px; border:1px solid var(--line); border-radius:17px; background:white; color:var(--ink); text-align:left; cursor:pointer; box-shadow:0 7px 22px rgba(22,72,55,.055); transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease; }
+    .category-card:hover { border-color:#9ed9bd; transform:translateY(-2px); box-shadow:0 11px 28px rgba(22,72,55,.10); }
+    .category-icon { display:block; margin-bottom:11px; font-size:22px; }
+    .category-name { display:block; font-weight:800; }
+    .category-count { display:block; margin-top:4px; color:var(--muted); font-size:12px; }
+    .result-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:22px 2px 10px; }
+    .result-head[hidden] { display:none; }
     .result-head h2 { margin:0; font-size:16px; }
-    .source { color:var(--muted); font-size:11px; }
+    .back-button { padding:7px 10px; border:1px solid var(--line); border-radius:10px; background:white; color:var(--green-dark); cursor:pointer; font-size:12px; font-weight:700; }
     .results { display:grid; gap:11px; }
     details { overflow:hidden; border:1px solid var(--line); border-radius:17px; background:white; box-shadow:0 7px 22px rgba(22,72,55,.055); }
     summary { position:relative; padding:17px 46px 17px 17px; cursor:pointer; list-style:none; }
@@ -62,11 +68,12 @@
   <h1>服務問題查詢</h1>
   <p class="lead">輸入問題或關鍵字，查看常見處置方式。查詢內容不會保存。</p>
   <input id="search" class="search" type="search" placeholder="例如：辨識失敗、體溫、血壓、網路" autocomplete="off">
-  <div id="chips" class="chips" aria-label="問題分類"></div>
+  <h2 id="browseTitle" class="browse-title">從哪一類開始？</h2>
+  <div id="chips" class="category-grid" aria-label="問題分類"></div>
 
-  <div class="result-head">
+  <div id="resultHead" class="result-head" hidden>
     <h2 id="resultCount"></h2>
-    <span class="source">依問題彙整資料整理</span>
+    <button id="resetButton" class="back-button" type="button">返回分類</button>
   </div>
   <section id="results" class="results" aria-live="polite"></section>
 
@@ -128,9 +135,11 @@
   const chips = document.querySelector("#chips");
   const results = document.querySelector("#results");
   const resultCount = document.querySelector("#resultCount");
+  const resultHead = document.querySelector("#resultHead");
+  const browseTitle = document.querySelector("#browseTitle");
   const statusBox = document.querySelector("#status");
   const modal = document.querySelector("#feedbackModal");
-  let selectedCategory = "全部";
+  let selectedCategory = null;
   let lastViewedQuestion = "未指定問題";
 
   function escapeHtml(value) {
@@ -138,21 +147,39 @@
   }
 
   function createCategoryButtons() {
-    const categories = ["全部", ...new Set(faqs.map(item => item.category))];
+    const categories = [...new Set(faqs.map(item => item.category))];
+    const icons = { "身分辨識":"◉", "數據上傳":"↥", "生理量測":"♡", "機器人操作":"▣", "硬體與網路":"⌁", "行政與帳務":"▤" };
     chips.innerHTML = categories.map(category => `
-      <button class="chip${category === "全部" ? " active" : ""}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>
+      <button class="category-card" data-category="${escapeHtml(category)}">
+        <span class="category-icon" aria-hidden="true">${icons[category] || "•"}</span>
+        <span class="category-name">${escapeHtml(category)}</span>
+        <span class="category-count">${faqs.filter(item => item.category === category).length} 個常見問題</span>
+      </button>
     `).join("");
   }
 
   function render() {
     const keyword = search.value.trim().toLocaleLowerCase("zh-Hant");
+    const hasSelection = Boolean(keyword || selectedCategory);
+
+    resultHead.hidden = !hasSelection;
+    browseTitle.hidden = hasSelection;
+    chips.hidden = hasSelection;
+
+    if (!hasSelection) {
+      results.innerHTML = "";
+      return;
+    }
+
     const filtered = faqs.filter(item => {
-      const categoryMatch = selectedCategory === "全部" || item.category === selectedCategory;
+      const categoryMatch = !selectedCategory || item.category === selectedCategory;
       const text = [item.question, item.answer, ...item.keywords].join(" ").toLocaleLowerCase("zh-Hant");
       return categoryMatch && (!keyword || text.includes(keyword));
     });
 
-    resultCount.textContent = `共 ${filtered.length} 筆`;
+    resultCount.textContent = selectedCategory
+      ? `${selectedCategory}・${filtered.length} 筆`
+      : `搜尋結果・${filtered.length} 筆`;
     results.innerHTML = filtered.length ? filtered.map((item, index) => `
       <details data-question="${escapeHtml(item.question)}">
         <summary>
@@ -171,11 +198,16 @@
     const button = event.target.closest("[data-category]");
     if (!button) return;
     selectedCategory = button.dataset.category;
-    chips.querySelectorAll(".chip").forEach(item => item.classList.toggle("active", item === button));
     render();
   });
 
   search.addEventListener("input", render);
+  document.querySelector("#resetButton").addEventListener("click", () => {
+    selectedCategory = null;
+    search.value = "";
+    render();
+    search.focus();
+  });
   results.addEventListener("toggle", event => {
     if (event.target.open && event.target.dataset.question) lastViewedQuestion = event.target.dataset.question;
   }, true);
