@@ -65,7 +65,7 @@
     <div id="status" class="status">一般網頁模式</div>
   </header>
 
-  <h1>服務問題查詢</h1>
+  <h1 id="greetingTitle">服務問題查詢</h1>
   <p class="lead">輸入問題或關鍵字，查看常見處置方式。查詢內容不會保存。</p>
   <input id="search" class="search" type="search" placeholder="例如：辨識失敗、體溫、血壓、網路" autocomplete="off">
   <h2 id="browseTitle" class="browse-title">從哪一類開始？</h2>
@@ -83,8 +83,8 @@
 
 <div id="feedbackModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
   <div class="modal">
-    <h2 id="feedbackTitle">有獲得解答嗎？</h2>
-    <p>選擇後會把結果帶回 LINE@。若尚未解決，客服即可接續協助。</p>
+    <h2 id="feedbackTitle">有找到需要的答案嗎？</h2>
+    <p>選擇後會將您的暱稱、查詢問題與結果帶回 LINE@；若尚未解決，客服會接續協助。</p>
     <div class="modal-actions">
       <button class="yes" data-feedback="resolved">有，已經解決</button>
       <button class="no" data-feedback="unresolved">還沒有，需要客服</button>
@@ -138,9 +138,11 @@
   const resultHead = document.querySelector("#resultHead");
   const browseTitle = document.querySelector("#browseTitle");
   const statusBox = document.querySelector("#status");
+  const greetingTitle = document.querySelector("#greetingTitle");
   const modal = document.querySelector("#feedbackModal");
   let selectedCategory = null;
   let lastViewedQuestion = "未指定問題";
+  let userDisplayName = "";
 
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -219,7 +221,11 @@
 
   async function returnToLine(result) {
     const resolved = result === "resolved";
-    const message = `${resolved ? "✅ 已獲得解答" : "❓ 尚未獲得解答，需要客服協助"}\n查詢問題：${lastViewedQuestion}`;
+    const salutation = userDisplayName ? `${userDisplayName}，` : "";
+    const responseText = resolved
+      ? `${salutation}感謝提問，很高興幫到您！`
+      : `${salutation}抱歉沒有解答到您，我們立刻呼叫客服來協助您。`;
+    const message = `${resolved ? "✅ 已獲得解答" : "❓ 需要客服協助"}\n${responseText}\n查詢問題：${lastViewedQuestion}`;
     try {
       if (window.liff && liff.isInClient()) {
         await liff.sendMessages([{ type:"text", text:message }]);
@@ -248,6 +254,15 @@
       statusBox.textContent = "LINE 連線中";
       await liff.init({ liffId:LIFF_ID, withLoginOnExternalBrowser:true });
       statusBox.textContent = liff.isInClient() ? "LINE 內開啟" : "LINE 已連線";
+      if (liff.isLoggedIn()) {
+        try {
+          const profile = await liff.getProfile();
+          userDisplayName = (profile.displayName || "").trim();
+          if (userDisplayName) greetingTitle.textContent = `嗨，${userDisplayName}`;
+        } catch (profileError) {
+          console.warn("無法取得 LINE 暱稱，請確認 LIFF 已啟用 profile scope。", profileError);
+        }
+      }
     } catch (error) {
       console.error(error);
       statusBox.textContent = "一般網頁模式";
