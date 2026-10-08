@@ -14,7 +14,10 @@
     main { width:min(100%,760px); min-height:100vh; margin:auto; padding:calc(18px + env(safe-area-inset-top)) 18px calc(32px + env(safe-area-inset-bottom)); }
     header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
     .brand { font-size:18px; font-weight:800; }
+    .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
     .status { padding:7px 10px; border:1px solid var(--line); border-radius:999px; background:white; color:var(--muted); font-size:12px; }
+    .admin-link { padding:8px 12px; border-radius:999px; background:var(--ink); color:white; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 7px 18px rgba(24,48,42,.16); }
+    .admin-link[hidden] { display:none; }
     h1 { margin:0 0 8px; font-size:clamp(30px,8vw,42px); letter-spacing:-.04em; }
     .lead { margin:0 0 20px; color:var(--muted); line-height:1.65; }
     .search { width:100%; min-height:56px; padding:0 18px; border:2px solid var(--line); border-radius:16px; background:white; color:var(--ink); outline:none; box-shadow:0 10px 28px rgba(22,72,55,.08); }
@@ -62,7 +65,10 @@
 <main>
   <header>
     <div class="brand">拉娃小幫手</div>
-    <div id="status" class="status">一般網頁模式</div>
+    <div class="header-actions">
+      <a id="adminLink" class="admin-link" href="admin.html" hidden>管理介面</a>
+      <div id="status" class="status">一般網頁模式</div>
+    </div>
   </header>
 
   <h1 id="greetingTitle">服務問題查詢</h1>
@@ -95,7 +101,8 @@
 
 <script>
   // 建立 LIFF App 後，請將 YOUR_LIFF_ID 換成實際的 LIFF ID。
-  const LIFF_ID = "2011870813-C7Krkv36";
+  const LIFF_ID = "YOUR_LIFF_ID";
+  const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
 
   const faqs = [
     { category:"身分辨識", question:"長者辨識失敗、很難辨識，或沒有人卻喊出名字", keywords:["臉部辨識","人臉","空氣辨識","偵測不到"], answer:"1. 補傳未戴帽子、口罩或頭巾的清晰正面大頭照，並以 ZIP 或 RAR 壓縮檔寄送。\n2. 與機器人保持在 1 公尺內，五官完整出現在畫面框中。\n3. 刪除機器人內的舊版專案，避免版本衝突。" },
@@ -138,6 +145,7 @@
   const resultHead = document.querySelector("#resultHead");
   const browseTitle = document.querySelector("#browseTitle");
   const statusBox = document.querySelector("#status");
+  const adminLink = document.querySelector("#adminLink");
   const greetingTitle = document.querySelector("#greetingTitle");
   const modal = document.querySelector("#feedbackModal");
   let selectedCategory = null;
@@ -248,6 +256,23 @@
     });
   });
 
+  async function detectAdmin() {
+    const idToken = liff.getIDToken();
+    if (!idToken) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/messages?limit=1`, {
+        headers: { Authorization:`Bearer ${idToken}` }
+      });
+
+      // /api/messages 只有 D1 admins 名單中的使用者會取得 200。
+      adminLink.hidden = !response.ok;
+    } catch (error) {
+      console.warn("無法確認管理員身分。", error);
+      adminLink.hidden = true;
+    }
+  }
+
   async function initializeLiff() {
     if (LIFF_ID === "YOUR_LIFF_ID" || !window.liff) return;
     try {
@@ -262,6 +287,7 @@
         } catch (profileError) {
           console.warn("無法取得 LINE 暱稱，請確認 LIFF 已啟用 profile scope。", profileError);
         }
+        await detectAdmin();
       }
     } catch (error) {
       console.error(error);
