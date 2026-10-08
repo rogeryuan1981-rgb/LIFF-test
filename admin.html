@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#13263f">
+  <title>客服(LIFF)｜群組對話紀錄</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    :root {
+      --navy:#13263f;
+      --navy-2:#1d3b61;
+      --green:#06c755;
+      --ink:#192433;
+      --muted:#6b7788;
+      --line:#dfe5ec;
+      --surface:#ffffff;
+      --bg:#f4f7fa;
+      --danger:#b42318;
+      --shadow:0 8px 28px rgba(19,38,63,.08);
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei",sans-serif;
+    }
+    button,input,select { font:inherit; }
+    .shell { width:min(960px,100%); margin:auto; padding:20px 16px 48px; }
+    .topbar {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:18px;
+    }
+    .brand { display:flex; align-items:center; gap:11px; }
+    .brand-mark {
+      display:grid;
+      place-items:center;
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      background:linear-gradient(145deg,var(--navy-2),var(--navy));
+      color:#fff;
+      font-weight:800;
+      box-shadow:var(--shadow);
+    }
+    h1 { margin:0; font-size:20px; line-height:1.25; }
+    .subtitle { margin:3px 0 0; color:var(--muted); font-size:13px; }
+    .viewer {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color:var(--muted);
+      font-size:13px;
+      text-align:right;
+    }
+    .viewer img { width:32px; height:32px; border-radius:50%; object-fit:cover; }
+    .panel {
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+    }
+    .toolbar {
+      display:grid;
+      grid-template-columns:minmax(0,1fr) minmax(180px,.55fr) auto;
+      gap:10px;
+      padding:14px;
+      margin-bottom:14px;
+    }
+    input,select {
+      width:100%;
+      min-height:44px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      color:var(--ink);
+      padding:0 13px;
+      outline:none;
+    }
+    input:focus,select:focus { border-color:#7ba3cf; box-shadow:0 0 0 3px rgba(29,59,97,.10); }
+    .button {
+      min-height:44px;
+      border:0;
+      border-radius:12px;
+      padding:0 16px;
+      background:var(--navy);
+      color:#fff;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .button:disabled { opacity:.45; cursor:default; }
+    .status {
+      margin:0 0 12px;
+      padding:12px 14px;
+      border-radius:12px;
+      background:#eaf2fb;
+      color:var(--navy-2);
+      font-size:14px;
+    }
+    .status.error { background:#fff0ee; color:var(--danger); }
+    .status[hidden] { display:none; }
+    .message-list { overflow:hidden; }
+    .message {
+      display:grid;
+      grid-template-columns:42px minmax(0,1fr);
+      gap:12px;
+      padding:16px;
+      border-bottom:1px solid var(--line);
+    }
+    .message:last-child { border-bottom:0; }
+    .avatar {
+      width:42px;
+      height:42px;
+      border-radius:50%;
+      background:#e6edf5;
+      object-fit:cover;
+      display:grid;
+      place-items:center;
+      color:var(--navy-2);
+      font-weight:800;
+    }
+    .message-head {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:7px;
+    }
+    .sender { font-weight:800; }
+    .group { color:var(--muted); font-size:13px; margin-top:2px; }
+    time { color:var(--muted); font-size:12px; white-space:nowrap; }
+    .message-text { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.6; }
+    .message-type {
+      display:inline-block;
+      padding:5px 9px;
+      border-radius:999px;
+      background:#eef2f6;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .empty { padding:42px 18px; text-align:center; color:var(--muted); }
+    .footer-actions { display:flex; justify-content:center; padding:16px 0 0; }
+    .count { margin:0 2px 10px; color:var(--muted); font-size:13px; }
+    @media (max-width:680px) {
+      .shell { padding-top:14px; }
+      .topbar { align-items:flex-start; }
+      .toolbar { grid-template-columns:1fr; }
+      .viewer span { display:none; }
+      .message-head { display:block; }
+      time { display:block; margin-top:4px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">客</div>
+        <div>
+          <h1>客服(LIFF) 群組對話紀錄</h1>
+          <p class="subtitle">僅限授權管理者查看</p>
+        </div>
+      </div>
+      <div id="viewer" class="viewer" hidden>
+        <span id="viewerName"></span>
+        <img id="viewerImage" alt="管理者頭像">
+      </div>
+    </header>
+
+    <section class="panel toolbar" aria-label="查詢工具">
+      <input id="searchInput" type="search" placeholder="搜尋訊息、發言者或群組">
+      <select id="groupFilter" aria-label="選擇群組">
+        <option value="">全部群組</option>
+      </select>
+      <button id="refreshButton" class="button" type="button">重新整理</button>
+    </section>
+
+    <p id="status" class="status">正在驗證 LINE 管理者身分…</p>
+    <p id="count" class="count" hidden></p>
+    <section id="messageList" class="panel message-list" aria-live="polite"></section>
+
+    <div class="footer-actions">
+      <button id="loadMoreButton" class="button" type="button" hidden>載入更多</button>
+    </div>
+  </main>
+
+  <script>
+    const LIFF_ID = "YOUR_LIFF_ID";
+    const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
+
+    const state = {
+      items: [],
+      nextBefore: null,
+      idToken: null,
+      loading: false,
+    };
+
+    const elements = {
+      viewer: document.querySelector("#viewer"),
+      viewerName: document.querySelector("#viewerName"),
+      viewerImage: document.querySelector("#viewerImage"),
+      status: document.querySelector("#status"),
+      count: document.querySelector("#count"),
+      list: document.querySelector("#messageList"),
+      search: document.querySelector("#searchInput"),
+      group: document.querySelector("#groupFilter"),
+      refresh: document.querySelector("#refreshButton"),
+      loadMore: document.querySelector("#loadMoreButton"),
+    };
+
+    function setStatus(message, isError = false) {
+      elements.status.textContent = message;
+      elements.status.classList.toggle("error", isError);
+      elements.status.hidden = !message;
+    }
+
+    function formatTime(timestamp) {
+      return new Intl.DateTimeFormat("zh-TW", {
+        timeZone: "Asia/Taipei",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }).format(new Date(Number(timestamp)));
+    }
+
+    function typeLabel(type) {
+      const labels = {
+        image: "圖片",
+        video: "影片",
+        audio: "語音",
+        file: "檔案",
+        location: "位置",
+        sticker: "貼圖",
+      };
+      return labels[type] ?? `非文字訊息：${type}`;
+    }
+
+    function createAvatar(item) {
+      if (item.sender_picture_url) {
+        const image = document.createElement("img");
+        image.className = "avatar";
+        image.src = item.sender_picture_url;
+        image.alt = "";
+        return image;
+      }
+
+      const fallback = document.createElement("div");
+      fallback.className = "avatar";
+      fallback.textContent = (item.sender_name || "?").slice(0, 1);
+      return fallback;
+    }
+
+    function createMessage(item) {
+      const article = document.createElement("article");
+      article.className = "message";
+      article.appendChild(createAvatar(item));
+
+      const body = document.createElement("div");
+      const head = document.createElement("div");
+      head.className = "message-head";
+
+      const identity = document.createElement("div");
+      const sender = document.createElement("div");
+      sender.className = "sender";
+      sender.textContent = item.sender_name || "未知使用者";
+      const group = document.createElement("div");
+      group.className = "group";
+      group.textContent = item.group_name || "未知群組";
+      identity.append(sender, group);
+
+      const time = document.createElement("time");
+      time.dateTime = new Date(Number(item.sent_at)).toISOString();
+      time.textContent = formatTime(item.sent_at);
+      head.append(identity, time);
+
+      body.appendChild(head);
+
+      if (item.message_type === "text") {
+        const text = document.createElement("p");
+        text.className = "message-text";
+        text.textContent = item.message_text || "";
+        body.appendChild(text);
+      } else {
+        const label = document.createElement("span");
+        label.className = "message-type";
+        label.textContent = typeLabel(item.message_type);
+        body.appendChild(label);
+      }
+
+      article.appendChild(body);
+      return article;
+    }
+
+    function updateGroupFilter() {
+      const selected = elements.group.value;
+      const groups = [...new Map(
+        state.items.map((item) => [item.group_id, item.group_name])
+      ).entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "zh-Hant"));
+
+      elements.group.replaceChildren();
+      const all = document.createElement("option");
+      all.value = "";
+      all.textContent = "全部群組";
+      elements.group.appendChild(all);
+
+      for (const [groupId, groupName] of groups) {
+        const option = document.createElement("option");
+        option.value = groupId;
+        option.textContent = groupName || groupId;
+        elements.group.appendChild(option);
+      }
+
+      elements.group.value = groups.some(([id]) => id === selected) ? selected : "";
+    }
+
+    function render() {
+      const keyword = elements.search.value.trim().toLocaleLowerCase("zh-Hant");
+      const groupId = elements.group.value;
+
+      const filtered = state.items.filter((item) => {
+        const matchesGroup = !groupId || item.group_id === groupId;
+        const haystack = [item.group_name, item.sender_name, item.message_text]
+          .filter(Boolean)
+          .join(" ")
+          .toLocaleLowerCase("zh-Hant");
+        return matchesGroup && (!keyword || haystack.includes(keyword));
+      });
+
+      elements.list.replaceChildren();
+      elements.count.hidden = false;
+      elements.count.textContent = `目前顯示 ${filtered.length} 筆；已載入 ${state.items.length} 筆紀錄`;
+
+      if (!filtered.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = state.items.length ? "找不到符合的訊息" : "目前沒有群組訊息";
+        elements.list.appendChild(empty);
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      filtered.forEach((item) => fragment.appendChild(createMessage(item)));
+      elements.list.appendChild(fragment);
+    }
+
+    async function loadMessages({ reset = false } = {}) {
+      if (state.loading) return;
+      state.loading = true;
+      elements.refresh.disabled = true;
+      elements.loadMore.disabled = true;
+      setStatus(reset ? "正在重新整理群組紀錄…" : "正在載入群組紀錄…");
+
+      try {
+        const url = new URL(`${API_BASE}/api/messages`);
+        url.searchParams.set("limit", "100");
+        if (!reset && state.nextBefore) url.searchParams.set("before", state.nextBefore);
+
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${state.idToken}`,
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (response.status === 401) throw new Error("LINE 登入已失效，請關閉頁面後重新開啟。");
+        if (response.status === 403) throw new Error("此 LINE 帳號沒有查看群組紀錄的權限。");
+        if (!response.ok || !data.ok) throw new Error("無法取得群組紀錄，請稍後再試。");
+
+        if (reset) state.items = [];
+        const knownIds = new Set(state.items.map((item) => item.id));
+        state.items.push(...data.items.filter((item) => !knownIds.has(item.id)));
+        state.nextBefore = data.nextBefore;
+
+        elements.viewer.hidden = false;
+        elements.viewerName.textContent = data.viewer.displayName || "管理者";
+        if (data.viewer.pictureUrl) {
+          elements.viewerImage.src = data.viewer.pictureUrl;
+        } else {
+          elements.viewerImage.hidden = true;
+        }
+
+        updateGroupFilter();
+        render();
+        elements.loadMore.hidden = !state.nextBefore;
+        setStatus("");
+      } catch (error) {
+        setStatus(error.message || "載入失敗。", true);
+      } finally {
+        state.loading = false;
+        elements.refresh.disabled = false;
+        elements.loadMore.disabled = false;
+      }
+    }
+
+    async function start() {
+      if (LIFF_ID === "YOUR_LIFF_ID") {
+        setStatus("請先將 admin.html 裡的 YOUR_LIFF_ID 改成目前使用的 LIFF ID。", true);
+        return;
+      }
+
+      try {
+        await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true });
+
+        if (!liff.isLoggedIn()) {
+          liff.login({ redirectUri: location.href });
+          return;
+        }
+
+        state.idToken = liff.getIDToken();
+
+        if (!state.idToken) {
+          throw new Error("無法取得 ID Token，請確認 LIFF Scopes 已啟用 openid。");
+        }
+
+        await loadMessages({ reset: true });
+      } catch (error) {
+        setStatus(error.message || "LIFF 初始化失敗。", true);
+      }
+    }
+
+    elements.search.addEventListener("input", render);
+    elements.group.addEventListener("change", render);
+    elements.refresh.addEventListener("click", () => loadMessages({ reset: true }));
+    elements.loadMore.addEventListener("click", () => loadMessages());
+
+    start();
+  </script>
+</body>
+</html>
