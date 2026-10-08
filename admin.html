@@ -205,7 +205,7 @@
   </main>
 
   <script>
-    const LIFF_ID = "2011870813-C7Krkv36";
+    const LIFF_ID = "YOUR_LIFF_ID";
     const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
 
     const state = {
@@ -293,9 +293,12 @@
       const kind = document.createElement("span");
       kind.className = "conversation-kind";
       kind.textContent = item.conversation_type === "user" ? "私訊" : "群組";
-      const conversationName = document.createElement("span");
-      conversationName.textContent = item.conversation_name || item.group_name || "未知對話";
-      conversation.append(kind, conversationName);
+      conversation.appendChild(kind);
+      if (item.conversation_type === "group") {
+        const conversationName = document.createElement("span");
+        conversationName.textContent = item.conversation_name || item.group_name || "未知群組";
+        conversation.appendChild(conversationName);
+      }
       identity.append(sender, conversation);
 
       const time = document.createElement("time");
