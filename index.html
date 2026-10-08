@@ -101,7 +101,7 @@
 
 <script>
   // 建立 LIFF App 後，請將 YOUR_LIFF_ID 換成實際的 LIFF ID。
-  const LIFF_ID = "2011870813-C7Krkv36";
+  const LIFF_ID = "YOUR_LIFF_ID";
   const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
 
   const faqs = [
@@ -261,12 +261,11 @@
     if (!idToken) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/messages?limit=1`, {
+      const response = await fetch(`${API_BASE}/api/me`, {
         headers: { Authorization:`Bearer ${idToken}` }
       });
-
-      // /api/messages 只有 D1 admins 名單中的使用者會取得 200。
-      adminLink.hidden = !response.ok;
+      const data = await response.json().catch(() => ({}));
+      adminLink.hidden = !(response.ok && data.ok && data.isAdmin);
     } catch (error) {
       console.warn("無法確認管理員身分。", error);
       adminLink.hidden = true;

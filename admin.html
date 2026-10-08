@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#13263f">
-  <title>客服(LIFF)｜群組對話紀錄</title>
+  <title>客服(LIFF)｜客服對話紀錄</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     :root {
@@ -57,6 +57,7 @@
       font-size:13px;
       text-align:right;
     }
+    .viewer[hidden] { display:none; }
     .viewer img { width:32px; height:32px; border-radius:50%; object-fit:cover; }
     .panel {
       background:var(--surface);
@@ -66,7 +67,7 @@
     }
     .toolbar {
       display:grid;
-      grid-template-columns:minmax(0,1fr) minmax(180px,.55fr) auto;
+      grid-template-columns:minmax(0,1fr) 130px minmax(180px,.55fr) auto;
       gap:10px;
       padding:14px;
       margin-bottom:14px;
@@ -132,6 +133,16 @@
     }
     .sender { font-weight:800; }
     .group { color:var(--muted); font-size:13px; margin-top:2px; }
+    .conversation-kind {
+      display:inline-block;
+      margin-right:6px;
+      padding:2px 7px;
+      border-radius:999px;
+      background:#eaf2fb;
+      color:var(--navy-2);
+      font-size:11px;
+      font-weight:700;
+    }
     time { color:var(--muted); font-size:12px; white-space:nowrap; }
     .message-text { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.6; }
     .message-type {
@@ -161,7 +172,7 @@
       <div class="brand">
         <div class="brand-mark" aria-hidden="true">客</div>
         <div>
-          <h1>客服(LIFF) 群組對話紀錄</h1>
+          <h1>客服(LIFF) 客服對話紀錄</h1>
           <p class="subtitle">僅限授權管理者查看</p>
         </div>
       </div>
@@ -172,9 +183,14 @@
     </header>
 
     <section class="panel toolbar" aria-label="查詢工具">
-      <input id="searchInput" type="search" placeholder="搜尋訊息、發言者或群組">
-      <select id="groupFilter" aria-label="選擇群組">
-        <option value="">全部群組</option>
+      <input id="searchInput" type="search" placeholder="搜尋訊息、使用者或群組">
+      <select id="typeFilter" aria-label="選擇對話類型">
+        <option value="">全部類型</option>
+        <option value="user">私訊</option>
+        <option value="group">群組</option>
+      </select>
+      <select id="conversationFilter" aria-label="選擇對話">
+        <option value="">全部對話</option>
       </select>
       <button id="refreshButton" class="button" type="button">重新整理</button>
     </section>
@@ -189,7 +205,7 @@
   </main>
 
   <script>
-    const LIFF_ID = "2011870813-C7Krkv36";
+    const LIFF_ID = "YOUR_LIFF_ID";
     const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
 
     const state = {
@@ -207,7 +223,8 @@
       count: document.querySelector("#count"),
       list: document.querySelector("#messageList"),
       search: document.querySelector("#searchInput"),
-      group: document.querySelector("#groupFilter"),
+      type: document.querySelector("#typeFilter"),
+      conversation: document.querySelector("#conversationFilter"),
       refresh: document.querySelector("#refreshButton"),
       loadMore: document.querySelector("#loadMoreButton"),
     };
@@ -271,10 +288,15 @@
       const sender = document.createElement("div");
       sender.className = "sender";
       sender.textContent = item.sender_name || "未知使用者";
-      const group = document.createElement("div");
-      group.className = "group";
-      group.textContent = item.group_name || "未知群組";
-      identity.append(sender, group);
+      const conversation = document.createElement("div");
+      conversation.className = "group";
+      const kind = document.createElement("span");
+      kind.className = "conversation-kind";
+      kind.textContent = item.conversation_type === "user" ? "私訊" : "群組";
+      const conversationName = document.createElement("span");
+      conversationName.textContent = item.conversation_name || item.group_name || "未知對話";
+      conversation.append(kind, conversationName);
+      identity.append(sender, conversation);
 
       const time = document.createElement("time");
       time.dateTime = new Date(Number(item.sent_at)).toISOString();
@@ -299,39 +321,47 @@
       return article;
     }
 
-    function updateGroupFilter() {
-      const selected = elements.group.value;
-      const groups = [...new Map(
-        state.items.map((item) => [item.group_id, item.group_name])
+    function updateConversationFilter() {
+      const selected = elements.conversation.value;
+      const conversations = [...new Map(
+        state.items.map((item) => [
+          `${item.conversation_type}:${item.conversation_id}`,
+          item.conversation_type === "user"
+            ? `私訊｜${item.sender_name || "未知使用者"}`
+            : `群組｜${item.conversation_name || item.group_name || "未知群組"}`
+        ])
       ).entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "zh-Hant"));
 
-      elements.group.replaceChildren();
+      elements.conversation.replaceChildren();
       const all = document.createElement("option");
       all.value = "";
-      all.textContent = "全部群組";
-      elements.group.appendChild(all);
+      all.textContent = "全部對話";
+      elements.conversation.appendChild(all);
 
-      for (const [groupId, groupName] of groups) {
+      for (const [conversationId, conversationName] of conversations) {
         const option = document.createElement("option");
-        option.value = groupId;
-        option.textContent = groupName || groupId;
-        elements.group.appendChild(option);
+        option.value = conversationId;
+        option.textContent = conversationName;
+        elements.conversation.appendChild(option);
       }
 
-      elements.group.value = groups.some(([id]) => id === selected) ? selected : "";
+      elements.conversation.value = conversations.some(([id]) => id === selected) ? selected : "";
     }
 
     function render() {
       const keyword = elements.search.value.trim().toLocaleLowerCase("zh-Hant");
-      const groupId = elements.group.value;
+      const type = elements.type.value;
+      const conversationId = elements.conversation.value;
 
       const filtered = state.items.filter((item) => {
-        const matchesGroup = !groupId || item.group_id === groupId;
-        const haystack = [item.group_name, item.sender_name, item.message_text]
+        const itemConversationId = `${item.conversation_type}:${item.conversation_id}`;
+        const matchesType = !type || item.conversation_type === type;
+        const matchesConversation = !conversationId || itemConversationId === conversationId;
+        const haystack = [item.conversation_name, item.group_name, item.sender_name, item.message_text]
           .filter(Boolean)
           .join(" ")
           .toLocaleLowerCase("zh-Hant");
-        return matchesGroup && (!keyword || haystack.includes(keyword));
+        return matchesType && matchesConversation && (!keyword || haystack.includes(keyword));
       });
 
       elements.list.replaceChildren();
@@ -341,7 +371,7 @@
       if (!filtered.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = state.items.length ? "找不到符合的訊息" : "目前沒有群組訊息";
+        empty.textContent = state.items.length ? "找不到符合的訊息" : "目前沒有客服對話";
         elements.list.appendChild(empty);
         return;
       }
@@ -356,7 +386,7 @@
       state.loading = true;
       elements.refresh.disabled = true;
       elements.loadMore.disabled = true;
-      setStatus(reset ? "正在重新整理群組紀錄…" : "正在載入群組紀錄…");
+      setStatus(reset ? "正在重新整理客服紀錄…" : "正在載入客服紀錄…");
 
       try {
         const url = new URL(`${API_BASE}/api/messages`);
@@ -371,8 +401,8 @@
         const data = await response.json().catch(() => ({}));
 
         if (response.status === 401) throw new Error("LINE 登入已失效，請關閉頁面後重新開啟。");
-        if (response.status === 403) throw new Error("此 LINE 帳號沒有查看群組紀錄的權限。");
-        if (!response.ok || !data.ok) throw new Error("無法取得群組紀錄，請稍後再試。");
+        if (response.status === 403) throw new Error("此 LINE 帳號沒有查看客服紀錄的權限。");
+        if (!response.ok || !data.ok) throw new Error("無法取得客服紀錄，請稍後再試。");
 
         if (reset) state.items = [];
         const knownIds = new Set(state.items.map((item) => item.id));
@@ -387,7 +417,7 @@
           elements.viewerImage.hidden = true;
         }
 
-        updateGroupFilter();
+        updateConversationFilter();
         render();
         elements.loadMore.hidden = !state.nextBefore;
         setStatus("");
@@ -427,7 +457,8 @@
     }
 
     elements.search.addEventListener("input", render);
-    elements.group.addEventListener("change", render);
+    elements.type.addEventListener("change", render);
+    elements.conversation.addEventListener("change", render);
     elements.refresh.addEventListener("click", () => loadMessages({ reset: true }));
     elements.loadMore.addEventListener("click", () => loadMessages());
 
