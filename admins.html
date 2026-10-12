@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#13263f">
+  <title>客服(LIFF)｜管理員權限</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    :root {
+      --navy:#13263f;
+      --navy-2:#1d3b61;
+      --green:#06c755;
+      --ink:#192433;
+      --muted:#6b7788;
+      --line:#dfe5ec;
+      --surface:#fff;
+      --bg:#f4f7fa;
+      --danger:#b42318;
+      --shadow:0 8px 28px rgba(19,38,63,.08);
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei",sans-serif; }
+    button,input { font:inherit; }
+    .shell { width:min(860px,100%); margin:auto; padding:20px 16px 48px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:18px; }
+    .title-wrap { display:flex; align-items:center; gap:11px; }
+    .mark { display:grid; place-items:center; width:42px; height:42px; border-radius:14px; background:linear-gradient(145deg,var(--navy-2),var(--navy)); color:#fff; font-weight:800; box-shadow:var(--shadow); }
+    h1,h2 { margin:0; }
+    h1 { font-size:20px; }
+    h2 { font-size:17px; }
+    .subtitle,.hint { color:var(--muted); font-size:13px; line-height:1.6; }
+    .subtitle { margin:3px 0 0; }
+    .back { padding:8px 11px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--navy-2); font-size:12px; font-weight:700; text-decoration:none; }
+    .panel { margin-bottom:14px; padding:16px; border:1px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:var(--shadow); }
+    .section-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px; }
+    .count { min-width:28px; padding:4px 8px; border-radius:999px; background:#eaf2fb; color:var(--navy-2); font-size:12px; font-weight:800; text-align:center; }
+    .status { margin:0 0 14px; padding:12px 14px; border-radius:12px; background:#eaf2fb; color:var(--navy-2); font-size:14px; }
+    .status.error { background:#fff0ee; color:var(--danger); }
+    .status[hidden] { display:none; }
+    .manual-form { display:grid; grid-template-columns:minmax(0,1fr) minmax(140px,.45fr) auto; gap:9px; margin-bottom:14px; }
+    input { width:100%; min-height:44px; padding:0 13px; border:1px solid var(--line); border-radius:12px; outline:none; }
+    input:focus { border-color:#7ba3cf; box-shadow:0 0 0 3px rgba(29,59,97,.10); }
+    .button { min-height:42px; padding:0 14px; border:0; border-radius:11px; background:var(--navy); color:#fff; font-weight:700; cursor:pointer; }
+    .button.secondary { border:1px solid var(--line); background:#fff; color:var(--navy-2); }
+    .button.danger { border:1px solid #f0b9b3; background:#fff; color:var(--danger); }
+    .button:disabled { opacity:.45; cursor:default; }
+    .search { margin-bottom:10px; }
+    .people { display:grid; gap:8px; }
+    .person { display:grid; grid-template-columns:44px minmax(0,1fr) auto; align-items:center; gap:11px; padding:11px; border:1px solid var(--line); border-radius:14px; }
+    .avatar { display:grid; place-items:center; width:44px; height:44px; border-radius:50%; background:#e6edf5; color:var(--navy-2); font-weight:800; object-fit:cover; }
+    .name { font-weight:800; }
+    .uid { margin-top:3px; color:var(--muted); font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:11px; overflow-wrap:anywhere; }
+    .self { display:inline-block; margin-left:6px; padding:2px 6px; border-radius:999px; background:#e8f9ef; color:#08783a; font-size:11px; }
+    .empty { padding:24px 12px; color:var(--muted); text-align:center; }
+    @media (max-width:640px) {
+      .shell { padding-top:14px; }
+      .manual-form { grid-template-columns:1fr; }
+      .person { grid-template-columns:40px minmax(0,1fr); }
+      .person .button { grid-column:1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="title-wrap">
+        <div class="mark" aria-hidden="true">權</div>
+        <div>
+          <h1>管理員權限</h1>
+          <p class="subtitle">設定哪些 LINE 帳號可以查看客服對話</p>
+        </div>
+      </div>
+      <a class="back" href="admin.html">返回對話紀錄</a>
+    </header>
+
+    <p id="status" class="status">正在驗證管理員身分…</p>
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2>目前管理員</h2>
+          <div class="hint">不能移除自己，也不能刪除最後一位管理員。</div>
+        </div>
+        <span id="adminCount" class="count">0</span>
+      </div>
+      <div id="adminList" class="people"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2>加入管理員</h2>
+          <div class="hint">可從曾經私訊或在群組發言的人員中加入，也可直接貼上 LINE UID。</div>
+        </div>
+        <span id="candidateCount" class="count">0</span>
+      </div>
+
+      <form id="manualForm" class="manual-form">
+        <input id="uidInput" required placeholder="LINE UID，例如 Uxxxxxxxx…" aria-label="LINE UID">
+        <input id="nameInput" placeholder="顯示名稱（選填）" aria-label="顯示名稱">
+        <button class="button" type="submit">加入</button>
+      </form>
+
+      <input id="searchInput" class="search" type="search" placeholder="搜尋姓名或 UID">
+      <div id="candidateList" class="people"></div>
+    </section>
+  </main>
+
+  <script>
+    const LIFF_ID = "YOUR_LIFF_ID";
+    const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
+
+    const state = { idToken:null, viewerUserId:null, admins:[], candidates:[], busy:false };
+    const elements = {
+      status:document.querySelector("#status"),
+      adminCount:document.querySelector("#adminCount"),
+      candidateCount:document.querySelector("#candidateCount"),
+      adminList:document.querySelector("#adminList"),
+      candidateList:document.querySelector("#candidateList"),
+      manualForm:document.querySelector("#manualForm"),
+      uid:document.querySelector("#uidInput"),
+      name:document.querySelector("#nameInput"),
+      search:document.querySelector("#searchInput"),
+    };
+
+    function setStatus(message, error=false) {
+      elements.status.textContent = message;
+      elements.status.classList.toggle("error", error);
+      elements.status.hidden = !message;
+    }
+
+    function apiError(error) {
+      const messages = {
+        invalid_user_id:"LINE UID 格式不正確。",
+        self_removal_not_allowed:"不能移除目前登入的管理員帳號。",
+        last_admin:"不能移除最後一位管理員。",
+        admin_not_found:"找不到這位管理員。",
+        forbidden:"此 LINE 帳號沒有管理權限。",
+        invalid_token:"LINE 登入已失效，請關閉頁面後重新開啟。",
+      };
+      return messages[error] || "操作失敗，請稍後再試。";
+    }
+
+    async function request(path, options={}) {
+      const response = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers:{
+          Authorization:`Bearer ${state.idToken}`,
+          ...(options.body ? { "Content-Type":"application/json" } : {}),
+          ...(options.headers || {}),
+        },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(apiError(data.error));
+      return data;
+    }
+
+    function avatar(person) {
+      if (person.picture_url) {
+        const image = document.createElement("img");
+        image.className = "avatar";
+        image.src = person.picture_url;
+        image.alt = "";
+        return image;
+      }
+      const fallback = document.createElement("div");
+      fallback.className = "avatar";
+      fallback.textContent = (person.display_name || "?").slice(0,1);
+      return fallback;
+    }
+
+    function personRow(person, isAdmin) {
+      const row = document.createElement("div");
+      row.className = "person";
+      row.appendChild(avatar(person));
+
+      const info = document.createElement("div");
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = person.display_name || "未命名使用者";
+      if (person.user_id === state.viewerUserId) {
+        const self = document.createElement("span");
+        self.className = "self";
+        self.textContent = "目前帳號";
+        name.appendChild(self);
+      }
+      const uid = document.createElement("div");
+      uid.className = "uid";
+      uid.textContent = person.user_id;
+      info.append(name, uid);
+      row.appendChild(info);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = isAdmin ? "button danger" : "button secondary";
+      button.textContent = isAdmin ? "移除權限" : "加入管理員";
+      button.disabled = state.busy || (isAdmin && person.user_id === state.viewerUserId);
+      button.addEventListener("click", () => isAdmin ? removeAdmin(person) : addAdmin(person));
+      row.appendChild(button);
+      return row;
+    }
+
+    function render() {
+      elements.adminCount.textContent = state.admins.length;
+      elements.candidateCount.textContent = state.candidates.length;
+      elements.adminList.replaceChildren();
+      elements.candidateList.replaceChildren();
+
+      state.admins.forEach((person) => elements.adminList.appendChild(personRow(person, true)));
+
+      const keyword = elements.search.value.trim().toLocaleLowerCase("zh-Hant");
+      const filtered = state.candidates.filter((person) =>
+        [person.display_name, person.user_id].filter(Boolean).join(" ").toLocaleLowerCase("zh-Hant").includes(keyword)
+      );
+      if (!filtered.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = state.candidates.length ? "找不到符合的人員" : "目前沒有可加入的人員";
+        elements.candidateList.appendChild(empty);
+      } else {
+        filtered.forEach((person) => elements.candidateList.appendChild(personRow(person, false)));
+      }
+    }
+
+    async function load() {
+      const data = await request("/api/admins");
+      state.viewerUserId = data.viewerUserId;
+      state.admins = data.admins || [];
+      state.candidates = data.candidates || [];
+      render();
+      setStatus("");
+    }
+
+    async function addAdmin(person) {
+      if (state.busy) return;
+      state.busy = true;
+      render();
+      try {
+        await request("/api/admins", {
+          method:"POST",
+          body:JSON.stringify({ userId:person.user_id, displayName:person.display_name || "" }),
+        });
+        await load();
+      } catch (error) {
+        setStatus(error.message, true);
+      } finally {
+        state.busy = false;
+        render();
+      }
+    }
+
+    async function removeAdmin(person) {
+      if (state.busy || person.user_id === state.viewerUserId) return;
+      if (!confirm(`確定移除「${person.display_name || person.user_id}」的管理權限嗎？`)) return;
+      state.busy = true;
+      render();
+      try {
+        await request(`/api/admins/${encodeURIComponent(person.user_id)}`, { method:"DELETE" });
+        await load();
+      } catch (error) {
+        setStatus(error.message, true);
+      } finally {
+        state.busy = false;
+        render();
+      }
+    }
+
+    elements.manualForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await addAdmin({ user_id:elements.uid.value.trim(), display_name:elements.name.value.trim() });
+      elements.uid.value = "";
+      elements.name.value = "";
+    });
+    elements.search.addEventListener("input", render);
+
+    async function start() {
+      if (LIFF_ID === "YOUR_LIFF_ID") {
+        setStatus("請先將 admins.html 裡的 YOUR_LIFF_ID 改成目前使用的 LIFF ID。", true);
+        return;
+      }
+      try {
+        await liff.init({ liffId:LIFF_ID, withLoginOnExternalBrowser:true });
+        if (!liff.isLoggedIn()) {
+          liff.login({ redirectUri:location.href });
+          return;
+        }
+        state.idToken = liff.getIDToken();
+        if (!state.idToken) throw new Error("無法取得 LINE 登入資訊。");
+        await load();
+      } catch (error) {
+        setStatus(error.message || "無法開啟管理員權限頁面。", true);
+      }
+    }
+
+    start();
+  </script>
+</body>
+</html>

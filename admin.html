@@ -59,6 +59,18 @@
     }
     .viewer[hidden] { display:none; }
     .viewer img { width:32px; height:32px; border-radius:50%; object-fit:cover; }
+    .top-actions { display:flex; align-items:center; gap:10px; }
+    .nav-link {
+      padding:8px 11px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+      color:var(--navy-2);
+      font-size:12px;
+      font-weight:700;
+      text-decoration:none;
+    }
+    .nav-link[hidden] { display:none; }
     .panel {
       background:var(--surface);
       border:1px solid var(--line);
@@ -176,9 +188,12 @@
           <p class="subtitle">僅限授權管理者查看</p>
         </div>
       </div>
-      <div id="viewer" class="viewer" hidden>
-        <span id="viewerName"></span>
-        <img id="viewerImage" alt="管理者頭像">
+      <div class="top-actions">
+        <a id="adminsLink" class="nav-link" href="admins.html" hidden>管理員權限</a>
+        <div id="viewer" class="viewer" hidden>
+          <span id="viewerName"></span>
+          <img id="viewerImage" alt="管理者頭像">
+        </div>
       </div>
     </header>
 
@@ -205,7 +220,7 @@
   </main>
 
   <script>
-    const LIFF_ID = "2011870813-C7Krkv36";
+    const LIFF_ID = "YOUR_LIFF_ID";
     const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
 
     const state = {
@@ -217,6 +232,7 @@
 
     const elements = {
       viewer: document.querySelector("#viewer"),
+      adminsLink: document.querySelector("#adminsLink"),
       viewerName: document.querySelector("#viewerName"),
       viewerImage: document.querySelector("#viewerImage"),
       status: document.querySelector("#status"),
@@ -413,6 +429,7 @@
         state.nextBefore = data.nextBefore;
 
         elements.viewer.hidden = false;
+        elements.adminsLink.hidden = false;
         elements.viewerName.textContent = data.viewer.displayName || "管理者";
         if (data.viewer.pictureUrl) {
           elements.viewerImage.src = data.viewer.pictureUrl;
