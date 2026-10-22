@@ -15,6 +15,12 @@
     * { box-sizing:border-box; }
     html,body { min-height:100%; }
     body { margin:0; background:var(--wash); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif; }
+    .boot-screen { position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:24px; background:var(--wash); opacity:1; visibility:visible; transition:opacity .18s ease,visibility .18s ease; }
+    .boot-screen.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+    .boot-card { display:grid; justify-items:center; gap:12px; color:var(--muted); text-align:center; }
+    .boot-logo { display:grid; place-items:center; width:58px; height:58px; border-radius:19px; background:linear-gradient(145deg,var(--green),var(--green-dark)); color:#fff; font-size:22px; font-weight:900; box-shadow:0 12px 28px rgba(6,199,85,.22); }
+    .boot-dots { display:flex; gap:5px; }
+    .boot-dots i { width:7px; height:7px; border-radius:50%; background:#88a397; animation:pulse 1s infinite; }
     button { font:inherit; }
     .app { width:min(100%,760px); min-height:100vh; margin:auto; background:linear-gradient(180deg,#f8fcfa 0%,var(--wash) 100%); }
     .topbar { position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid rgba(220,233,227,.9); background:rgba(248,252,250,.93); backdrop-filter:blur(14px); }
@@ -61,6 +67,13 @@
   </style>
 </head>
 <body>
+  <div id="bootScreen" class="boot-screen" role="status" aria-live="polite">
+    <div class="boot-card">
+      <div class="boot-logo" aria-hidden="true">拉</div>
+      <div>正在準備拉娃小幫手…</div>
+      <div class="boot-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    </div>
+  </div>
   <main class="app">
     <header class="topbar">
       <div class="brand">
@@ -91,7 +104,7 @@
   </div>
 
   <script>
-    const LIFF_ID = "2011870813-C7Krkv36";
+    const LIFF_ID = "YOUR_LIFF_ID";
     const ASSISTANT_NAME = "拉娃小幫手";
 
     // 樹狀資料可支援任意層數；未來設定介面可直接管理這個結構。
@@ -193,16 +206,16 @@
     // 每個對話階段至少 10 種話術；{name}、{assistant}、{choice} 會動態替換。
     const dialogue = {
       greetings:[
-        "{name}您好，我是{assistant}，今天有什麼可以協助您？",
-        "嗨，{name}！我是最熱情的{assistant}，今天想詢問什麼呢？",
-        "{name}您好，很高興見到您。我是{assistant}，讓我陪您一起找答案。",
-        "歡迎回來，{name}！我是{assistant}，有任何問題都可以告訴我。",
-        "{name}您好，我是{assistant}。今天遇到什麼狀況了呢？",
-        "您好，{name}！{assistant}已經準備好為您服務了。",
-        "{name}您好，別擔心，我是{assistant}，我們一起一步一步處理。",
-        "很高興為您服務，{name}。我是{assistant}，今天想從哪個問題開始？",
-        "{name}您好，我是您的{assistant}，接下來由我協助您找到需要的資訊。",
-        "嗨，{name}！今天也交給{assistant}來幫忙吧，您想先了解什麼？"
+        "{name}您好，我是{assistant}，今天有什麼可以協助您的嗎？",
+        "{name}您好，很高興為您服務。我是{assistant}，請告訴我您想了解的問題。",
+        "您好，{name}。我是{assistant}，我會陪您逐步確認需要的資訊。",
+        "{name}您好，歡迎使用服務查詢。我是{assistant}，請問今天想了解什麼呢？",
+        "您好，{name}。如果操作上遇到問題，我會協助您一步一步確認。",
+        "{name}您好，我是{assistant}。請從您目前最需要協助的問題開始即可。",
+        "您好，{name}。我是{assistant}，接下來會依照您的選擇提供相關說明。",
+        "{name}您好，謝謝您使用服務查詢。今天希望我協助確認哪一項問題呢？",
+        "您好，{name}。我是{assistant}，我會協助您找到合適的處理方式。",
+        "{name}您好，我是{assistant}。讓我們一起確認您目前遇到的狀況。"
       ],
       categoryPrompts:[
         "請先選擇最接近您問題的大分類。",
@@ -220,13 +233,13 @@
         "好的，您選擇的是「{choice}」。",
         "了解，我們就從「{choice}」開始確認。",
         "收到，接下來一起看看「{choice}」的相關狀況。",
-        "沒問題，我幫您整理「{choice}」的可能情形。",
+        "好的，我會協助您確認「{choice}」的相關情形。",
         "好的，{name}，我們往「{choice}」繼續查找。",
         "我明白了，您目前想了解的是「{choice}」。",
-        "選得很好，我們接著縮小「{choice}」的問題範圍。",
+        "了解，我們接著確認「{choice}」的具體狀況。",
         "收到您的選擇，我們來處理「{choice}」。",
-        "沒問題，現在進入「{choice}」的相關問題。",
-        "好的，我已記下「{choice}」，再確認一個細節就更容易找到答案。"
+        "好的，接下來會顯示「{choice}」的相關問題。",
+        "好的，我已記下「{choice}」，再請您協助確認一項細節。"
       ],
       nextPrompts:[
         "請再選擇最接近的情況。",
@@ -235,10 +248,10 @@
         "請看看下面的選項，哪一個最符合現況？",
         "再請您確認一下，比較接近哪種情形呢？",
         "為了提供正確答案，請繼續選擇下一層問題。",
-        "差一點就找到答案了，請選擇最相符的項目。",
+        "為了提供較符合現況的說明，請選擇最相符的項目。",
         "{name}，以下哪一項比較像您現在碰到的狀況？",
         "請依照實際情況，選擇最接近的一個選項。",
-        "讓我們繼續確認，請從下列項目中選擇。"
+        "我們繼續確認問題細節，請從下列項目中選擇。"
       ],
       answerIntroductions:[
         "了解，這個問題可以依照以下方式處理：",
@@ -246,21 +259,21 @@
         "好的，建議您按照以下步驟確認：",
         "針對這個情況，請先這樣處理：",
         "{name}，以下是目前建議的解決方式：",
-        "沒問題，我幫您整理出處理方法了：",
+        "以下已為您整理相關的處理方式：",
         "這個狀況有對應的處置方式，請參考：",
-        "請別擔心，您可以先依照以下說明操作：",
+        "您可以先依照以下說明逐項確認：",
         "我已經找到相關答案，內容如下：",
         "針對您選擇的問題，建議處理方式是："
       ],
       afterAnswer:[
         "以上說明有解決您的問題嗎？您可以繼續查詢，或結束後告訴我結果。",
         "{name}，請確認看看是否已經排除問題；需要的話也可以查詢其他項目。",
-        "希望這個方法能幫上忙。您想再查一個問題，還是結束這次查詢？",
-        "請先依照說明試試看。若還有其他問題，我可以繼續協助。",
+        "希望以上說明對您有幫助。您想再查一個問題，還是結束這次查詢？",
+        "請依照說明確認看看。若還有其他問題，我可以繼續協助。",
         "這就是目前建議的處理方式。接下來要查詢其他問題嗎？",
         "回答到這裡，您可以重新選擇問題，或按下結束查詢。",
         "如果內容仍有不清楚的地方，可以繼續找其他答案或請客服協助。",
-        "{assistant}已把相關資訊整理好了，接下來想怎麼進行呢？",
+        "相關資訊已為您整理完成，接下來想怎麼進行呢？",
         "請確認這項說明是否符合現場狀況；還需要協助的話，我們可以繼續。",
         "以上提供給您參考。您可以查詢其他問題，或結束並回到 LINE@。"
       ],
@@ -269,12 +282,12 @@
         "沒問題，來看看還有什麼能協助您的。",
         "當然可以，請再選擇一個問題分類。",
         "好的，{name}，我們繼續查詢下一個問題。",
-        "收到，讓{assistant}再陪您找另一個答案。",
+        "收到，我會繼續協助您查詢其他問題。",
         "沒問題，這次想了解哪個方向呢？",
         "我們重新整理一下，請選擇下一個大分類。",
         "好的，您可以再從下面的分類開始選擇。",
         "當然，請告訴我接下來想查詢哪一類問題。",
-        "繼續交給我吧，我們從另一個分類開始。"
+        "好的，我們從另一個分類繼續確認。"
       ],
       back:[
         "好的，我們回到上一層重新選擇。",
@@ -290,15 +303,15 @@
       ],
       resolved:[
         "{name}，感謝提問，很高興幫到您！",
-        "太好了，{name}！很高興這次的說明有幫上忙。",
-        "很開心問題已經解決，謝謝{ name }使用{assistant}。",
-        "收到，{name}，能協助您解決問題真是太好了！",
-        "太棒了！謝謝{ name }的回覆，希望今天的服務對您有幫助。",
-        "問題順利解決就好，{assistant}很高興能為您服務。",
+        "{name}，很高興這次的說明有幫上忙，謝謝您的回覆。",
+        "很高興問題已經解決，謝謝{ name }使用{assistant}。",
+        "收到，{name}，很高興能協助您處理這次的問題。",
+        "謝謝{ name }的回覆，很高興今天的服務對您有幫助。",
+        "很高興問題已順利處理，謝謝您使用{assistant}。",
         "謝謝您的確認，{name}。很高興這次找到需要的答案。",
-        "能幫上忙是{assistant}最開心的事，謝謝{ name }！",
+        "很高興能為您提供協助，謝謝{ name }的使用。",
         "好的，{name}，感謝您的提問，祝您操作順利。",
-        "太好了，謝謝{ name }使用本次查詢服務！"
+        "謝謝{ name }使用本次查詢服務，很高興能協助您。"
       ],
       unresolved:[
         "{name}，抱歉沒有解答到您，我們立刻呼叫客服來協助您。",
@@ -317,6 +330,7 @@
     const chat = document.querySelector("#chat");
     const modal = document.querySelector("#feedbackModal");
     const status = document.querySelector("#connectionStatus");
+    const bootScreen = document.querySelector("#bootScreen");
     const randomHistory = new Map();
     let userDisplayName = "朋友";
     let selectedPath = [];
@@ -453,6 +467,7 @@
           status.textContent=liff.isInClient() ? "LINE 內開啟" : "LINE 已連線";
         } catch (error) { console.warn(error); status.textContent="一般網頁模式"; }
       } else status.textContent="預覽模式";
+      bootScreen.classList.add("hidden");
       await startConversation();
     }
     initialize();
