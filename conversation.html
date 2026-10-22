@@ -104,7 +104,7 @@
   </div>
 
   <script>
-    const LIFF_ID = "2011870813-C7Krkv36";
+    const LIFF_ID = "YOUR_LIFF_ID";
     const ASSISTANT_NAME = "拉娃小幫手";
 
     // 樹狀資料可支援任意層數；未來設定介面可直接管理這個結構。
@@ -218,16 +218,16 @@
         "{name}您好，我是{assistant}。讓我們一起確認您目前遇到的狀況。"
       ],
       categoryPrompts:[
-        "請先選擇最接近您問題的大分類。",
-        "我們先確認問題的方向，請從下面選一個分類。",
-        "為了更快找到答案，請告訴我問題屬於哪一類。",
-        "{name}，請看看下列分類，哪一個最接近目前的狀況？",
-        "讓我們先從大方向開始，請選擇一項。",
-        "請從以下項目中，選出您現在最想處理的問題類型。",
-        "我會一步一步引導您，先選擇問題的大分類吧。",
-        "您遇到的情況比較接近下面哪一類呢？",
-        "先不用急著描述細節，從最接近的分類開始就可以了。",
-        "請選擇一個問題領域，{assistant}會繼續帶您往下確認。"
+        "為了協助您找到合適的處理方式，我會先確認問題類別。請選擇最接近的一項。",
+        "接下來會依照問題類型逐步引導您。請先選擇目前遇到的狀況屬於哪一類。",
+        "為了提供較符合現況的說明，請先從下列項目中選擇問題類別。",
+        "{name}，我會先了解問題的類型，再協助您確認細節。請選擇最接近的一項。",
+        "我們先確認您需要協助的問題類別，之後會再逐步縮小範圍。請選擇一項。",
+        "為了更有效率地找到相關說明，請先選擇您目前想處理的問題類型。",
+        "我會按照您的選擇逐步提供相關問題。首先，請選擇最接近的問題類別。",
+        "請先告訴我目前遇到的是哪一類問題，我會再協助您確認具體狀況。",
+        "我們會從問題類別開始，再逐步確認細節。請選擇最符合現況的一項。",
+        "為了找到適合的操作說明，請先選擇問題類別，{assistant}會接著為您引導。"
       ],
       acknowledgements:[
         "好的，您選擇的是「{choice}」。",
@@ -332,12 +332,12 @@
     const status = document.querySelector("#connectionStatus");
     const bootScreen = document.querySelector("#bootScreen");
     const randomHistory = new Map();
-    let userDisplayName = "朋友";
+    let userDisplayName = "";
     let selectedPath = [];
     let interactionLocked = false;
 
     function formatTemplate(text, extra={}) {
-      const values = { name:userDisplayName || "朋友", assistant:ASSISTANT_NAME, ...extra };
+      const values = { name:userDisplayName, assistant:ASSISTANT_NAME, ...extra };
       return text.replace(/\{\s*(name|assistant|choice)\s*\}/g, (_, key) => values[key] ?? "");
     }
     function randomLine(key, extra={}) {
@@ -462,11 +462,29 @@
       if (LIFF_ID!=="YOUR_LIFF_ID" && window.liff) {
         try {
           await liff.init({liffId:LIFF_ID,withLoginOnExternalBrowser:true});
-          const tokenInfo=liff.isLoggedIn() ? liff.getDecodedIDToken() : null;
-          userDisplayName=(tokenInfo?.name || "朋友").trim();
+          if (!liff.isLoggedIn()) {
+            liff.login({redirectUri:location.href});
+            return;
+          }
+          const tokenInfo=liff.getDecodedIDToken();
+          userDisplayName=(tokenInfo?.name || "").trim();
+          if (!userDisplayName) {
+            const profile=await liff.getProfile();
+            userDisplayName=(profile?.displayName || "").trim();
+          }
+          if (!userDisplayName) throw new Error("無法取得 LINE 暱稱");
           status.textContent=liff.isInClient() ? "LINE 內開啟" : "LINE 已連線";
-        } catch (error) { console.warn(error); status.textContent="一般網頁模式"; }
-      } else status.textContent="預覽模式";
+        } catch (error) {
+          console.warn(error);
+          status.textContent="無法取得 LINE 暱稱";
+          bootScreen.classList.add("hidden");
+          addMessage("bot","目前無法取得您的 LINE 暱稱，請關閉頁面後從 LINE 重新開啟。","answer");
+          return;
+        }
+      } else {
+        status.textContent="預覽模式";
+        userDisplayName="測試使用者";
+      }
       bootScreen.classList.add("hidden");
       await startConversation();
     }
