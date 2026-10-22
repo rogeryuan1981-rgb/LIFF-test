@@ -48,7 +48,6 @@
     .choice.secondary { border-color:var(--line); color:var(--muted); }
     .choices.done .choice { opacity:.5; pointer-events:none; }
     .choices.done .choice.selected { opacity:1; border-color:var(--green); background:#eaf9f0; }
-    .status { align-self:center; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:#fff; color:var(--muted); font-size:11px; }
     .modal-backdrop { position:fixed; inset:0; z-index:20; display:none; align-items:flex-end; justify-content:center; padding:18px; background:rgba(9,27,21,.46); }
     .modal-backdrop.show { display:flex; }
     .modal { width:min(100%,480px); padding:22px; border-radius:22px; background:#fff; box-shadow:0 24px 60px rgba(0,0,0,.24); }
@@ -80,7 +79,7 @@
         <div class="avatar-logo" aria-hidden="true">拉</div>
         <div>
           <div class="brand-title">拉娃小幫手</div>
-          <div id="connectionStatus" class="brand-subtitle">正在準備對話…</div>
+          <div id="connectionStatus" class="brand-subtitle">互動式服務查詢</div>
         </div>
       </div>
       <div class="header-actions">
@@ -104,7 +103,7 @@
   </div>
 
   <script>
-    const LIFF_ID = "2011870813-C7Krkv36";
+    const LIFF_ID = "YOUR_LIFF_ID";
     const ASSISTANT_NAME = "拉娃小幫手";
     const SESSION_KEY = "lawa-liff-session-v1";
     const SESSION_TTL = 15 * 60 * 1000;
@@ -500,7 +499,6 @@
           }
           if (!userDisplayName) throw new Error("無法取得 LINE 暱稱");
           writeSessionCache({displayName:userDisplayName});
-          status.textContent=liff.isInClient() ? "LINE 內開啟" : "LINE 已連線";
         } catch (error) {
           console.warn(error);
           status.textContent="無法取得 LINE 暱稱";
@@ -509,7 +507,6 @@
           return;
         }
       } else {
-        status.textContent="預覽模式";
         userDisplayName="測試使用者";
       }
       bootScreen.classList.add("hidden");

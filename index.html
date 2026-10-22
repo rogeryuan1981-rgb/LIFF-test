@@ -23,7 +23,8 @@
     header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
     .brand { font-size:18px; font-weight:800; }
     .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
-    .status { padding:7px 10px; border:1px solid var(--line); border-radius:999px; background:white; color:var(--muted); font-size:12px; }
+    .status { padding:7px 10px; border:1px solid #f0b8b0; border-radius:999px; background:#fff1ef; color:#a5392d; font-size:12px; }
+    .status[hidden] { display:none; }
     .admin-link { padding:8px 12px; border-radius:999px; background:var(--ink); color:white; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 7px 18px rgba(24,48,42,.16); }
     .admin-link[hidden] { display:none; }
     .conversation-link { padding:8px 12px; border:1px solid #9ed9bd; border-radius:999px; background:white; color:var(--green-dark); font-size:12px; font-weight:800; text-decoration:none; white-space:nowrap; }
@@ -86,7 +87,7 @@
     <div class="header-actions">
       <a class="conversation-link" href="conversation.html">對話引導</a>
       <a id="adminLink" class="admin-link" href="admin.html" hidden>管理中心</a>
-      <div id="status" class="status">一般網頁模式</div>
+      <div id="status" class="status" role="alert" hidden></div>
     </div>
   </header>
 
@@ -120,7 +121,7 @@
 
 <script>
   // 建立 LIFF App 後，請將 YOUR_LIFF_ID 換成實際的 LIFF ID。
-  const LIFF_ID = "2011870813-C7Krkv36";
+  const LIFF_ID = "YOUR_LIFF_ID";
   const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
   const SESSION_KEY = "lawa-liff-session-v1";
   const SESSION_TTL = 15 * 60 * 1000;
@@ -332,14 +333,12 @@
     }
     let redirecting = false;
     try {
-      statusBox.textContent = "LINE 連線中";
       await liff.init({ liffId:LIFF_ID });
       if (!liff.isLoggedIn()) {
         redirecting = true;
         liff.login({ redirectUri:location.href });
         return;
       }
-      statusBox.textContent = liff.isInClient() ? "LINE 內開啟" : "LINE 已連線";
       const tokenInfo = liff.getDecodedIDToken();
       const cached = readSessionCache();
       userDisplayName = (cached?.displayName || tokenInfo?.name || "").trim();
@@ -348,7 +347,8 @@
       await detectAdmin();
     } catch (error) {
       console.error(error);
-      statusBox.textContent = "一般網頁模式";
+      statusBox.textContent = "LINE 連線失敗，請重新開啟";
+      statusBox.hidden = false;
     } finally {
       if (!redirecting) bootScreen.classList.add("hidden");
     }
