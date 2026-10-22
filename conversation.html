@@ -104,8 +104,33 @@
   </div>
 
   <script>
-    const LIFF_ID = "2011870813-C7Krkv36";
+    const LIFF_ID = "YOUR_LIFF_ID";
     const ASSISTANT_NAME = "拉娃小幫手";
+    const SESSION_KEY = "lawa-liff-session-v1";
+    const SESSION_TTL = 15 * 60 * 1000;
+
+    function readSessionCache() {
+      try {
+        const cached=JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
+        if (!cached || cached.expiresAt<=Date.now()) {
+          sessionStorage.removeItem(SESSION_KEY);
+          return null;
+        }
+        return cached;
+      } catch {
+        sessionStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+    }
+
+    function writeSessionCache(patch) {
+      const current=readSessionCache() || {};
+      sessionStorage.setItem(SESSION_KEY,JSON.stringify({
+        ...current,
+        ...patch,
+        expiresAt:Date.now()+SESSION_TTL
+      }));
+    }
 
     // 樹狀資料可支援任意層數；未來設定介面可直接管理這個結構。
     const knowledgeTree = [
@@ -461,18 +486,20 @@
     async function initialize() {
       if (LIFF_ID!=="YOUR_LIFF_ID" && window.liff) {
         try {
-          await liff.init({liffId:LIFF_ID,withLoginOnExternalBrowser:true});
+          await liff.init({liffId:LIFF_ID});
           if (!liff.isLoggedIn()) {
             liff.login({redirectUri:location.href});
             return;
           }
+          const cached=readSessionCache();
           const tokenInfo=liff.getDecodedIDToken();
-          userDisplayName=(tokenInfo?.name || "").trim();
+          userDisplayName=(cached?.displayName || tokenInfo?.name || "").trim();
           if (!userDisplayName) {
             const profile=await liff.getProfile();
             userDisplayName=(profile?.displayName || "").trim();
           }
           if (!userDisplayName) throw new Error("無法取得 LINE 暱稱");
+          writeSessionCache({displayName:userDisplayName});
           status.textContent=liff.isInClient() ? "LINE 內開啟" : "LINE 已連線";
         } catch (error) {
           console.warn(error);

@@ -120,8 +120,10 @@
 
 <script>
   // 建立 LIFF App 後，請將 YOUR_LIFF_ID 換成實際的 LIFF ID。
-  const LIFF_ID = "2011870813-C7Krkv36";
+  const LIFF_ID = "YOUR_LIFF_ID";
   const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
+  const SESSION_KEY = "lawa-liff-session-v1";
+  const SESSION_TTL = 15 * 60 * 1000;
 
   const faqs = [
     { category:"身分辨識", question:"長者辨識失敗、很難辨識，或沒有人卻喊出名字", keywords:["臉部辨識","人臉","空氣辨識","偵測不到"], answer:"1. 補傳未戴帽子、口罩或頭巾的清晰正面大頭照，並以 ZIP 或 RAR 壓縮檔寄送。\n2. 與機器人保持在 1 公尺內，五官完整出現在畫面框中。\n3. 刪除機器人內的舊版專案，避免版本衝突。" },
@@ -171,6 +173,29 @@
   let selectedCategory = null;
   let lastViewedQuestion = "未指定問題";
   let userDisplayName = "";
+
+  function readSessionCache() {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
+      if (!cached || cached.expiresAt <= Date.now()) {
+        sessionStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      return cached;
+    } catch {
+      sessionStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+  }
+
+  function writeSessionCache(patch) {
+    const current = readSessionCache() || {};
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+      ...current,
+      ...patch,
+      expiresAt: Date.now() + SESSION_TTL
+    }));
+  }
 
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -277,6 +302,12 @@
   });
 
   async function detectAdmin() {
+    const cached = readSessionCache();
+    if (typeof cached?.isAdmin === "boolean") {
+      adminLink.hidden = !cached.isAdmin;
+      return;
+    }
+
     const idToken = liff.getIDToken();
     if (!idToken) return;
 
@@ -285,7 +316,9 @@
         headers: { Authorization:`Bearer ${idToken}` }
       });
       const data = await response.json().catch(() => ({}));
-      adminLink.hidden = !(response.ok && data.ok && data.isAdmin);
+      const isAdmin = Boolean(response.ok && data.ok && data.isAdmin);
+      adminLink.hidden = !isAdmin;
+      writeSessionCache({ isAdmin });
     } catch (error) {
       console.warn("無法確認管理員身分。", error);
       adminLink.hidden = true;
@@ -297,21 +330,27 @@
       bootScreen.classList.add("hidden");
       return;
     }
+    let redirecting = false;
     try {
       statusBox.textContent = "LINE 連線中";
-      await liff.init({ liffId:LIFF_ID, withLoginOnExternalBrowser:true });
-      statusBox.textContent = liff.isInClient() ? "LINE 內開啟" : "LINE 已連線";
-      if (liff.isLoggedIn()) {
-        const tokenInfo = liff.getDecodedIDToken();
-        userDisplayName = (tokenInfo?.name || "").trim();
-        if (userDisplayName) greetingTitle.textContent = `嗨，${userDisplayName}`;
-        await detectAdmin();
+      await liff.init({ liffId:LIFF_ID });
+      if (!liff.isLoggedIn()) {
+        redirecting = true;
+        liff.login({ redirectUri:location.href });
+        return;
       }
+      statusBox.textContent = liff.isInClient() ? "LINE 內開啟" : "LINE 已連線";
+      const tokenInfo = liff.getDecodedIDToken();
+      const cached = readSessionCache();
+      userDisplayName = (cached?.displayName || tokenInfo?.name || "").trim();
+      if (userDisplayName) writeSessionCache({ displayName:userDisplayName });
+      if (userDisplayName) greetingTitle.textContent = `嗨，${userDisplayName}`;
+      await detectAdmin();
     } catch (error) {
       console.error(error);
       statusBox.textContent = "一般網頁模式";
     } finally {
-      bootScreen.classList.add("hidden");
+      if (!redirecting) bootScreen.classList.add("hidden");
     }
   }
 
