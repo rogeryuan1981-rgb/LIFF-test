@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0a7d47">
+  <title>拉娃小幫手｜對話引導</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    :root {
+      --green:#06c755; --green-dark:#087a43; --ink:#18302a; --muted:#687970;
+      --line:#dce9e3; --wash:#f3faf7; --surface:#fff; --user:#dff7e9;
+      --shadow:0 12px 36px rgba(22,72,55,.09);
+    }
+    * { box-sizing:border-box; }
+    html,body { min-height:100%; }
+    body { margin:0; background:var(--wash); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif; }
+    button { font:inherit; }
+    .app { width:min(100%,760px); min-height:100vh; margin:auto; background:linear-gradient(180deg,#f8fcfa 0%,var(--wash) 100%); }
+    .topbar { position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid rgba(220,233,227,.9); background:rgba(248,252,250,.93); backdrop-filter:blur(14px); }
+    .brand { display:flex; align-items:center; gap:10px; min-width:0; }
+    .avatar-logo { display:grid; place-items:center; width:42px; height:42px; border-radius:14px; background:linear-gradient(145deg,#0b9857,#056a3b); color:#fff; font-weight:900; box-shadow:0 8px 20px rgba(6,199,85,.22); }
+    .brand-title { font-weight:900; }
+    .brand-subtitle { margin-top:2px; color:var(--muted); font-size:12px; }
+    .header-actions { display:flex; gap:7px; }
+    .header-button { padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--green-dark); font-size:12px; font-weight:800; text-decoration:none; cursor:pointer; }
+    .chat { display:flex; flex-direction:column; gap:13px; min-height:calc(100vh - 84px); padding:20px 16px calc(34px + env(safe-area-inset-bottom)); }
+    .row { display:flex; align-items:flex-end; gap:8px; animation:rise .2s ease-out; }
+    .row.user { justify-content:flex-end; }
+    .bot-avatar { flex:0 0 auto; display:grid; place-items:center; width:30px; height:30px; border-radius:10px; background:#0b8750; color:#fff; font-size:12px; font-weight:900; }
+    .bubble { max-width:min(82%,560px); padding:12px 14px; border:1px solid var(--line); border-radius:18px 18px 18px 5px; background:var(--surface); line-height:1.65; white-space:pre-line; box-shadow:0 7px 22px rgba(22,72,55,.055); }
+    .user .bubble { border-color:#bce8cf; border-radius:18px 18px 5px 18px; background:var(--user); }
+    .bubble.answer { width:min(82%,560px); border-left:4px solid var(--green); }
+    .bubble.typing-text::after { content:""; display:inline-block; width:2px; height:1.05em; margin-left:2px; background:#6d8177; vertical-align:-.14em; animation:cursorBlink .75s infinite; }
+    .typing { display:flex; align-items:center; gap:5px; min-width:58px; }
+    .typing i { width:7px; height:7px; border-radius:50%; background:#93a49c; animation:pulse 1s infinite; }
+    .typing i:nth-child(2) { animation-delay:.14s; }
+    .typing i:nth-child(3) { animation-delay:.28s; }
+    .choices { display:flex; flex-wrap:wrap; gap:8px; margin-left:38px; animation:rise .2s ease-out; }
+    .choice { min-height:42px; padding:9px 13px; border:1px solid #9fd8ba; border-radius:13px; background:#fff; color:var(--green-dark); font-weight:800; text-align:left; cursor:pointer; transition:.15s ease; }
+    .choice:hover { transform:translateY(-1px); border-color:var(--green); box-shadow:0 6px 16px rgba(6,199,85,.12); }
+    .choice.secondary { border-color:var(--line); color:var(--muted); }
+    .choices.done .choice { opacity:.5; pointer-events:none; }
+    .choices.done .choice.selected { opacity:1; border-color:var(--green); background:#eaf9f0; }
+    .status { align-self:center; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:#fff; color:var(--muted); font-size:11px; }
+    .modal-backdrop { position:fixed; inset:0; z-index:20; display:none; align-items:flex-end; justify-content:center; padding:18px; background:rgba(9,27,21,.46); }
+    .modal-backdrop.show { display:flex; }
+    .modal { width:min(100%,480px); padding:22px; border-radius:22px; background:#fff; box-shadow:0 24px 60px rgba(0,0,0,.24); }
+    .modal h2 { margin:0 0 8px; font-size:22px; }
+    .modal p { margin:0 0 18px; color:var(--muted); line-height:1.6; }
+    .modal-actions { display:grid; gap:9px; }
+    .modal-actions button { min-height:48px; border-radius:13px; cursor:pointer; font-weight:800; }
+    .yes { border:0; background:var(--green); color:#fff; }
+    .no { border:1px solid var(--green); background:#fff; color:var(--green-dark); }
+    .cancel { border:0; background:#f0f4f2; color:var(--muted); }
+    @keyframes rise { from { opacity:0; transform:translateY(5px); } }
+    @keyframes pulse { 0%,70%,100% { opacity:.35; transform:translateY(0); } 35% { opacity:1; transform:translateY(-2px); } }
+    @keyframes cursorBlink { 0%,45% { opacity:1; } 46%,100% { opacity:0; } }
+    @media (min-width:620px) { .chat { padding-inline:28px; } .modal-backdrop { align-items:center; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="avatar-logo" aria-hidden="true">拉</div>
+        <div>
+          <div class="brand-title">拉娃小幫手</div>
+          <div id="connectionStatus" class="brand-subtitle">正在準備對話…</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a class="header-button" href="index.html">問答集模式</a>
+        <button id="finishButton" class="header-button" type="button">結束查詢</button>
+      </div>
+    </header>
+    <section id="chat" class="chat" aria-live="polite"></section>
+  </main>
+
+  <div id="feedbackModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
+    <div class="modal">
+      <h2 id="feedbackTitle">有找到需要的答案嗎？</h2>
+      <p>選擇後會將您的暱稱、查詢路徑與結果帶回 LINE@；若尚未解決，客服會接續協助。</p>
+      <div class="modal-actions">
+        <button class="yes" data-feedback="resolved">有，已經解決</button>
+        <button class="no" data-feedback="unresolved">還沒有，需要客服</button>
+        <button class="cancel" data-feedback="cancel">繼續查看</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const LIFF_ID = "YOUR_LIFF_ID";
+    const ASSISTANT_NAME = "拉娃小幫手";
+
+    // 樹狀資料可支援任意層數；未來設定介面可直接管理這個結構。
+    const knowledgeTree = [
+      {
+        label:"身分辨識",
+        children:[
+          { label:"無法正常辨識", children:[
+            { label:"長者辨識失敗、很難辨識，或沒有人卻喊出名字", answer:"1. 補傳未戴帽子、口罩或頭巾的清晰正面大頭照，並以 ZIP 或 RAR 壓縮檔寄送。\n2. 與機器人保持在 1 公尺內，五官完整出現在畫面框中。\n3. 刪除機器人內的舊版專案，避免版本衝突。" },
+            { label:"一開始就出現『請靠近一點』的提示", answer:"工程團隊已調整提示語音的觸發時間與邏輯，避免長者剛就定位時過早播放提示。" }
+          ]},
+          { label:"辨識結果或稱呼異常", children:[
+            { label:"機器人叫錯長者的名字", answer:"重新拍攝清晰正面照片並上傳後台，再進行模型重新訓練與派發。" },
+            { label:"機器人為什麼稱呼長者為『測試者』", answer:"系統辨識失敗後，如果使用者選擇直接進入量測模式，機器人會以『測試者』稱呼。" }
+          ]}
+        ]
+      },
+      {
+        label:"數據上傳",
+        children:[
+          { label:"量測資料上傳與系統串接", children:[
+            { label:"量測完成後，資料沒有傳到文健站系統或後台", answer:"先確認人臉辨識成功，而且量測結束時有聽到『上傳成功』。未成功辨識者的資料不會上傳。\n文健站系統需提供授權帳密，完成 API 綁定串接。\n如果因連線異常暫時上傳失敗，請先手動補登。" }
+          ]},
+          { label:"後台簽核流程", children:[
+            { label:"後台看不到 AI 建立的生理量測簽核資料", answer:"AI 自動建立資料後，照服員仍需進入後台點選『編輯』，再手動按『送審』。完成後，負責人或督導端才會看到審核資料。" }
+          ]}
+        ]
+      },
+      {
+        label:"生理量測",
+        children:[
+          { label:"體溫量測", children:[
+            { label:"體溫顯示 0 度，或體溫量測步驟被跳過", answer:"確認機器人頭頂的茶葉蛋造型溫度計是否插好。舊版溫度計還需確認電源插頭全程連接，且指示燈有亮起。" },
+            { label:"機器人量到的體溫普遍偏高", answer:"機器人插電使用時，機身與頭部發熱可能影響感測器。量測時請拔除電源線，無人使用時再充飽電。團隊也會持續記錄特定個案數值，以進行校正。" }
+          ]},
+          { label:"血壓量測", children:[
+            { label:"AI 血壓和血壓機的數值差距很大或偏低", answer:"請依資料彙整中的校正方式選擇用藥狀態：有服用高血壓藥物者選『高血壓前期』；未服藥者選『高血壓』；一般正常狀態選『正常』。正確選項有助演算法校正。" }
+          ]},
+          { label:"重複量測", children:[
+            { label:"第二次量測覆蓋第一次紀錄，而且沒有自動備註", answer:"目前版本尚未提供二次量測自動備註功能。請由照服員暫時手動輸入備註。" }
+          ]}
+        ]
+      },
+      {
+        label:"機器人操作",
+        children:[
+          { label:"基本資料輸入", children:[
+            { label:"每次量測都要重新輸入身高、體重與年齡", answer:"請先在後台完整建立長者基本資料。之後透過人臉辨識登入，系統就能自動帶入，不需每次重複輸入。" },
+            { label:"輸入基本資料後，系統說數值等於零", answer:"身高與體重請輸入整數，不要輸入小數點。系統無法解析小數點時，會將數值判定為 0。" }
+          ]},
+          { label:"人員切換與量測流程", children:[
+            { label:"換下一位長者時，為什麼不能直接接著辨識", answer:"每位長者完成後都要先退出，再重新辨識下一位。若省略退出步驟，系統可能繼續使用上一位長者的資料。" }
+          ]},
+          { label:"畫面、APP 與操作選單", children:[
+            { label:"畫面出現『未安裝指定 APP』", answer:"這是系統提醒。直接點選『繼續執行』即可，不會影響系統功能。" },
+            { label:"畫面卡住、叫不起來，或找不到操作選單", answer:"可在螢幕上由右往左滑，或由上往下滑，回到選單後點選 roflow。\n也可按一下頭頂電源鍵，或長按電源鍵並選擇『退出 roflow』，再回到主選單。" }
+          ]}
+        ]
+      },
+      {
+        label:"硬體與網路",
+        children:[
+          { label:"頭部與動作", children:[
+            { label:"機器人的頭一直擺動", answer:"團隊規劃更換頭部較輕、並具備自動人臉追蹤功能的新版機器人。" },
+            { label:"機器人頭部下垂，導致臉部難以對焦", answer:"從螢幕下拉選單關閉『動作控制』，或將動作設定為『不動』。" }
+          ]},
+          { label:"聲音與現場照明", children:[
+            { label:"機器人音量太大，要去哪裡調整", answer:"從下拉選單調整音量。如果選單遭鎖定，先長按頭頂按鈕，選擇『退出 roflow』，再下拉調整音量。" },
+            { label:"畫面提示『環境要再亮一點』", answer:"非接觸式影像量測需要充足光線。請移到光線充足的位置，例如面向自然光或照明良好處。" }
+          ]},
+          { label:"電視與投影", children:[
+            { label:"機器人投影到電視需要 HDMI 線嗎", answer:"機器人採用無線方式連接電視，不需要另外準備 HDMI 線材。若仍無法連接，可向客服索取示範影片。" }
+          ]},
+          { label:"網路連線", children:[
+            { label:"現場網路不穩，機器人無法順利量測或上傳", answer:"非接觸式影像檢測需要穩定且頻寬充足的網路。請先檢查現場訊號；若網路異常，可暫時改連手機熱點測試。" },
+            { label:"使用 CHT7656 網路時，資料疑似遭防火牆阻擋", answer:"此問題需由團隊協調原民會與電信業者，調整站點 CHT7656 網域的防火牆及連線設定，請回到 LINE@ 聯繫客服。" }
+          ]}
+        ]
+      },
+      {
+        label:"行政與帳務",
+        children:[
+          { label:"系統授權", children:[
+            { label:"為什麼系統串接需要提供照服員帳號密碼", answer:"提供授權帳密是系統自動串接文健站平台的必要步驟，用於完成 API 綁定。" }
+          ]},
+          { label:"設備歸屬", children:[
+            { label:"專案結束後，電視與機器人會被回收嗎", answer:"專案結束後，電視與機器人會永久留在文健站使用，不會回收。" }
+          ]},
+          { label:"文件操作", children:[
+            { label:"雲端手冊或簡報無法直接在線上開啟", answer:"開啟雲端連結後，點選『更多動作』，再選擇『下載』。將簡報儲存到電腦資料夾後，再從本機開啟。" }
+          ]},
+          { label:"LINE 訊息與費用", children:[
+            { label:"量測資料沒有即時推播到長者 LINE", answer:"資料彙整中的案例原因是訊息 Token 額度用盡。由計畫主持人完成核銷及付費程序後，即可恢復推播。" }
+          ]}
+        ]
+      }
+    ];
+
+    // 每個對話階段至少 10 種話術；{name}、{assistant}、{choice} 會動態替換。
+    const dialogue = {
+      greetings:[
+        "{name}您好，我是{assistant}，今天有什麼可以協助您？",
+        "嗨，{name}！我是最熱情的{assistant}，今天想詢問什麼呢？",
+        "{name}您好，很高興見到您。我是{assistant}，讓我陪您一起找答案。",
+        "歡迎回來，{name}！我是{assistant}，有任何問題都可以告訴我。",
+        "{name}您好，我是{assistant}。今天遇到什麼狀況了呢？",
+        "您好，{name}！{assistant}已經準備好為您服務了。",
+        "{name}您好，別擔心，我是{assistant}，我們一起一步一步處理。",
+        "很高興為您服務，{name}。我是{assistant}，今天想從哪個問題開始？",
+        "{name}您好，我是您的{assistant}，接下來由我協助您找到需要的資訊。",
+        "嗨，{name}！今天也交給{assistant}來幫忙吧，您想先了解什麼？"
+      ],
+      categoryPrompts:[
+        "請先選擇最接近您問題的大分類。",
+        "我們先確認問題的方向，請從下面選一個分類。",
+        "為了更快找到答案，請告訴我問題屬於哪一類。",
+        "{name}，請看看下列分類，哪一個最接近目前的狀況？",
+        "讓我們先從大方向開始，請選擇一項。",
+        "請從以下項目中，選出您現在最想處理的問題類型。",
+        "我會一步一步引導您，先選擇問題的大分類吧。",
+        "您遇到的情況比較接近下面哪一類呢？",
+        "先不用急著描述細節，從最接近的分類開始就可以了。",
+        "請選擇一個問題領域，{assistant}會繼續帶您往下確認。"
+      ],
+      acknowledgements:[
+        "好的，您選擇的是「{choice}」。",
+        "了解，我們就從「{choice}」開始確認。",
+        "收到，接下來一起看看「{choice}」的相關狀況。",
+        "沒問題，我幫您整理「{choice}」的可能情形。",
+        "好的，{name}，我們往「{choice}」繼續查找。",
+        "我明白了，您目前想了解的是「{choice}」。",
+        "選得很好，我們接著縮小「{choice}」的問題範圍。",
+        "收到您的選擇，我們來處理「{choice}」。",
+        "沒問題，現在進入「{choice}」的相關問題。",
+        "好的，我已記下「{choice}」，再確認一個細節就更容易找到答案。"
+      ],
+      nextPrompts:[
+        "請再選擇最接近的情況。",
+        "接下來，哪個選項比較符合您遇到的問題？",
+        "我們再縮小一點範圍，請選擇一項。",
+        "請看看下面的選項，哪一個最符合現況？",
+        "再請您確認一下，比較接近哪種情形呢？",
+        "為了提供正確答案，請繼續選擇下一層問題。",
+        "差一點就找到答案了，請選擇最相符的項目。",
+        "{name}，以下哪一項比較像您現在碰到的狀況？",
+        "請依照實際情況，選擇最接近的一個選項。",
+        "讓我們繼續確認，請從下列項目中選擇。"
+      ],
+      answerIntroductions:[
+        "了解，這個問題可以依照以下方式處理：",
+        "我找到對應的處理方式了，請參考下面說明：",
+        "好的，建議您按照以下步驟確認：",
+        "針對這個情況，請先這樣處理：",
+        "{name}，以下是目前建議的解決方式：",
+        "沒問題，我幫您整理出處理方法了：",
+        "這個狀況有對應的處置方式，請參考：",
+        "請別擔心，您可以先依照以下說明操作：",
+        "我已經找到相關答案，內容如下：",
+        "針對您選擇的問題，建議處理方式是："
+      ],
+      afterAnswer:[
+        "以上說明有解決您的問題嗎？您可以繼續查詢，或結束後告訴我結果。",
+        "{name}，請確認看看是否已經排除問題；需要的話也可以查詢其他項目。",
+        "希望這個方法能幫上忙。您想再查一個問題，還是結束這次查詢？",
+        "請先依照說明試試看。若還有其他問題，我可以繼續協助。",
+        "這就是目前建議的處理方式。接下來要查詢其他問題嗎？",
+        "回答到這裡，您可以重新選擇問題，或按下結束查詢。",
+        "如果內容仍有不清楚的地方，可以繼續找其他答案或請客服協助。",
+        "{assistant}已把相關資訊整理好了，接下來想怎麼進行呢？",
+        "請確認這項說明是否符合現場狀況；還需要協助的話，我們可以繼續。",
+        "以上提供給您參考。您可以查詢其他問題，或結束並回到 LINE@。"
+      ],
+      restart:[
+        "好的，我們重新從大分類開始。",
+        "沒問題，來看看還有什麼能協助您的。",
+        "當然可以，請再選擇一個問題分類。",
+        "好的，{name}，我們繼續查詢下一個問題。",
+        "收到，讓{assistant}再陪您找另一個答案。",
+        "沒問題，這次想了解哪個方向呢？",
+        "我們重新整理一下，請選擇下一個大分類。",
+        "好的，您可以再從下面的分類開始選擇。",
+        "當然，請告訴我接下來想查詢哪一類問題。",
+        "繼續交給我吧，我們從另一個分類開始。"
+      ],
+      back:[
+        "好的，我們回到上一層重新選擇。",
+        "沒問題，請再看看上一層的選項。",
+        "收到，我們往回一步。",
+        "可以的，請重新選擇比較接近的項目。",
+        "好的，{name}，我們回到前一層確認。",
+        "沒關係，我們回上一層再選一次。",
+        "已為您返回上一層，請重新選擇。",
+        "讓我們換個方向，從上一層繼續。",
+        "好的，前一層的選項已經準備好了。",
+        "沒問題，請從上一層選項重新開始。"
+      ],
+      resolved:[
+        "{name}，感謝提問，很高興幫到您！",
+        "太好了，{name}！很高興這次的說明有幫上忙。",
+        "很開心問題已經解決，謝謝{ name }使用{assistant}。",
+        "收到，{name}，能協助您解決問題真是太好了！",
+        "太棒了！謝謝{ name }的回覆，希望今天的服務對您有幫助。",
+        "問題順利解決就好，{assistant}很高興能為您服務。",
+        "謝謝您的確認，{name}。很高興這次找到需要的答案。",
+        "能幫上忙是{assistant}最開心的事，謝謝{ name }！",
+        "好的，{name}，感謝您的提問，祝您操作順利。",
+        "太好了，謝謝{ name }使用本次查詢服務！"
+      ],
+      unresolved:[
+        "{name}，抱歉沒有解答到您，我們立刻呼叫客服來協助您。",
+        "抱歉這次的說明還沒有解決問題，客服會接著協助{ name }。",
+        "了解，{name}。我會把問題交給客服人員繼續處理。",
+        "很抱歉還沒找到合適答案，我們立即請客服協助您。",
+        "收到，{name}，這個狀況需要進一步確認，客服會接手處理。",
+        "抱歉讓您多花時間了，接下來由客服人員為您提供協助。",
+        "沒問題，我已記下目前的查詢內容，將請客服協助{ name }。",
+        "了解，這個問題需要人工確認，我們立刻為您轉交客服。",
+        "{name}，謝謝您告訴我結果；很抱歉未能解決，我們會請客服協助。",
+        "抱歉目前的答案不符合需求，接下來讓客服人員繼續為您服務。"
+      ]
+    };
+
+    const chat = document.querySelector("#chat");
+    const modal = document.querySelector("#feedbackModal");
+    const status = document.querySelector("#connectionStatus");
+    const randomHistory = new Map();
+    let userDisplayName = "朋友";
+    let selectedPath = [];
+    let interactionLocked = false;
+
+    function formatTemplate(text, extra={}) {
+      const values = { name:userDisplayName || "朋友", assistant:ASSISTANT_NAME, ...extra };
+      return text.replace(/\{\s*(name|assistant|choice)\s*\}/g, (_, key) => values[key] ?? "");
+    }
+    function randomLine(key, extra={}) {
+      const lines = dialogue[key];
+      let index;
+      do index = Math.floor(Math.random() * lines.length); while (lines.length > 1 && index === randomHistory.get(key));
+      randomHistory.set(key,index);
+      return formatTemplate(lines[index],extra);
+    }
+    function scrollToLatest() { requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"})); }
+    function addMessage(role,text,className="") {
+      const row=document.createElement("div"); row.className=`row ${role}`;
+      if (role==="bot") { const avatar=document.createElement("div"); avatar.className="bot-avatar"; avatar.textContent="拉"; row.appendChild(avatar); }
+      const bubble=document.createElement("div"); bubble.className=`bubble ${className}`.trim(); bubble.textContent=text; row.appendChild(bubble); chat.appendChild(row); scrollToLatest();
+      return row;
+    }
+    function addUserMessage(text) { addMessage("user",text); }
+    async function botSay(text,className="") {
+      const typing=document.createElement("div"); typing.className="row bot"; typing.innerHTML='<div class="bot-avatar">拉</div><div class="bubble typing"><i></i><i></i><i></i></div>'; chat.appendChild(typing); scrollToLatest();
+      const characters=Array.from(text);
+      const thinkingDelay=Math.min(1100,360+characters.length*3)+Math.floor(Math.random()*260);
+      await new Promise(resolve=>setTimeout(resolve,thinkingDelay));
+      typing.remove();
+
+      const row=document.createElement("div"); row.className="row bot";
+      const avatar=document.createElement("div"); avatar.className="bot-avatar"; avatar.textContent="拉";
+      const bubble=document.createElement("div"); bubble.className=`bubble ${className} typing-text`.trim(); bubble.setAttribute("aria-label",text); bubble.title="點一下可立即顯示完整內容";
+      row.append(avatar,bubble); chat.appendChild(row); scrollToLatest();
+
+      const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let skipTyping=false;
+      bubble.addEventListener("click",()=>{ skipTyping=true; },{once:true});
+      if (reducedMotion) skipTyping=true;
+
+      for (let index=0;index<characters.length;index+=1) {
+        if (skipTyping) { bubble.textContent=text; break; }
+        const character=characters[index];
+        bubble.textContent+=character;
+        if (index%7===0 || /[。！？：；，、\n]/.test(character)) window.scrollTo({top:document.body.scrollHeight});
+
+        const isAnswer=className.includes("answer");
+        let delay=isAnswer ? 11+Math.random()*13 : 24+Math.random()*27;
+        if (/[。！？]/.test(character)) delay+=150+Math.random()*130;
+        else if (/[：；，、\n]/.test(character)) delay+=65+Math.random()*80;
+        else if (/\s/.test(character)) delay*=.45;
+        await new Promise(resolve=>setTimeout(resolve,delay));
+      }
+      bubble.classList.remove("typing-text"); bubble.removeAttribute("title"); scrollToLatest();
+    }
+    function disableChoices(container,selectedButton) {
+      container.classList.add("done");
+      if (selectedButton) selectedButton.classList.add("selected");
+      container.querySelectorAll("button").forEach(button=>button.disabled=true);
+    }
+    function showChoices(nodes,onSelect,{allowBack=false,onBack=null}={}) {
+      const container=document.createElement("div"); container.className="choices";
+      nodes.forEach(node=>{
+        const button=document.createElement("button"); button.type="button"; button.className="choice"; button.textContent=node.label;
+        button.addEventListener("click",async()=>{ if (interactionLocked) return; interactionLocked=true; disableChoices(container,button); addUserMessage(node.label); await onSelect(node); interactionLocked=false; });
+        container.appendChild(button);
+      });
+      if (allowBack) {
+        const button=document.createElement("button"); button.type="button"; button.className="choice secondary"; button.textContent="← 返回上一層";
+        button.addEventListener("click",async()=>{ if (interactionLocked) return; interactionLocked=true; disableChoices(container,button); addUserMessage("返回上一層"); await onBack(); interactionLocked=false; });
+        container.appendChild(button);
+      }
+      chat.appendChild(container); scrollToLatest();
+    }
+    function nodesAtPath(path) {
+      let nodes=knowledgeTree;
+      for (const label of path) { const node=nodes.find(item=>item.label===label); nodes=node?.children || []; }
+      return nodes;
+    }
+    async function presentLevel(nodes,path=[]) {
+      await botSay(path.length ? randomLine("nextPrompts") : randomLine("categoryPrompts"));
+      showChoices(nodes,async(node)=>{
+        selectedPath=[...path,node.label];
+        await botSay(randomLine("acknowledgements",{choice:node.label}));
+        if (node.answer) {
+          await botSay(randomLine("answerIntroductions"));
+          await botSay(node.answer,"answer");
+          await botSay(randomLine("afterAnswer"));
+          showChoices([{label:"查詢其他問題",action:"restart"},{label:"結束查詢",action:"finish"}],async(action)=>{
+            if (action.action==="restart") { await botSay(randomLine("restart")); selectedPath=[]; await presentLevel(knowledgeTree,[]); }
+            else openFeedback();
+          });
+        } else {
+          await presentLevel(node.children || [],selectedPath);
+        }
+      },{
+        allowBack:path.length>0,
+        onBack:async()=>{
+          const parentPath=path.slice(0,-1); selectedPath=parentPath;
+          await botSay(randomLine("back"));
+          await presentLevel(nodesAtPath(parentPath),parentPath);
+        }
+      });
+    }
+    async function startConversation() {
+      chat.replaceChildren(); selectedPath=[];
+      await botSay(randomLine("greetings"));
+      await presentLevel(knowledgeTree,[]);
+    }
+    function openFeedback() { modal.classList.add("show"); }
+    async function returnToLine(result) {
+      const resolved=result==="resolved";
+      const responseText=randomLine(resolved ? "resolved" : "unresolved");
+      const pathText=selectedPath.length ? selectedPath.join(" ＞ ") : "尚未選擇問題";
+      const message=`${resolved ? "✅ 已獲得解答" : "❓ 需要客服協助"}\n${responseText}\n查詢路徑：${pathText}`;
+      try {
+        if (window.liff && liff.isInClient()) { await liff.sendMessages([{type:"text",text:message}]); liff.closeWindow(); return; }
+        if (navigator.clipboard) await navigator.clipboard.writeText(message);
+        alert("目前不在 LINE 內開啟。回覆內容已複製，請貼到 LINE@ 對話。\n\n"+message);
+      } catch (error) { console.error(error); alert("無法自動送出訊息，請回到 LINE@ 手動輸入：\n"+message); }
+    }
+    document.querySelector("#finishButton").addEventListener("click",openFeedback);
+    modal.addEventListener("click",event=>{ if (event.target===modal) modal.classList.remove("show"); });
+    modal.querySelectorAll("[data-feedback]").forEach(button=>button.addEventListener("click",()=>{
+      const result=button.dataset.feedback; modal.classList.remove("show"); if (result!=="cancel") returnToLine(result);
+    }));
+    async function initialize() {
+      if (LIFF_ID!=="YOUR_LIFF_ID" && window.liff) {
+        try {
+          await liff.init({liffId:LIFF_ID,withLoginOnExternalBrowser:true});
+          const tokenInfo=liff.isLoggedIn() ? liff.getDecodedIDToken() : null;
+          userDisplayName=(tokenInfo?.name || "朋友").trim();
+          status.textContent=liff.isInClient() ? "LINE 內開啟" : "LINE 已連線";
+        } catch (error) { console.warn(error); status.textContent="一般網頁模式"; }
+      } else status.textContent="預覽模式";
+      await startConversation();
+    }
+    initialize();
+  </script>
+</body>
+</html>
