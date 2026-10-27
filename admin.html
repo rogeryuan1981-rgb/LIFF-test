@@ -106,20 +106,24 @@
     .placeholder-note { margin:8px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }
     .dialogue-count { margin-top:7px; color:var(--muted); font-size:12px; }
     .rich-toolbar { display:flex; flex-wrap:wrap; gap:6px; padding:8px; border:1px solid var(--line); border-bottom:0; border-radius:11px 11px 0 0; background:#f3f6f9; }
-    .rich-toolbar + textarea { border-radius:0 0 12px 12px; }
+    .rich-toolbar + textarea + .visual-editor { border-radius:0 0 12px 12px; }
     .tool-button { min-height:31px; padding:0 9px; border:1px solid #cfd9e4; border-radius:8px; background:#fff; color:var(--navy-2); font-size:12px; font-weight:800; cursor:pointer; }
     .tool-button.token { background:#eaf2fb; }
     .tool-button.bold { font-weight:900; }
     .tool-button.italic { font-style:italic; }
     .tool-button.underline { text-decoration:underline; }
     .tool-button.strike { text-decoration:line-through; }
-    .simulator-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:11px; }
+    .visual-editor { min-height:120px; padding:11px 12px; border:1px solid var(--line); border-radius:12px; background:#fff; color:var(--ink); font:inherit; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; outline:none; }
+    .visual-editor:focus { border-color:#6cae91; box-shadow:0 0 0 3px rgba(11,135,80,.10); }
+    .visual-editor:empty::before { content:attr(data-placeholder); color:#98a3ae; pointer-events:none; }
+    .visual-editor.dialogue-editor { min-height:300px; }
+    .editor-token { display:inline-flex; align-items:center; margin:0 2px; padding:1px 6px; border-radius:999px; background:#eaf2fb; color:#174a75; font-size:.88em; font-weight:800; vertical-align:baseline; }
+    .simulator-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; margin-top:11px; }
     .simulator { padding:12px; border:1px solid var(--line); border-radius:14px; background:#f3faf7; }
     .simulator-title { margin-bottom:9px; color:var(--muted); font-size:11px; font-weight:800; }
     .preview-row { display:flex; align-items:flex-end; gap:7px; }
     .preview-avatar { display:grid; flex:0 0 auto; place-items:center; width:28px; height:28px; border-radius:9px; background:#0b8750; color:#fff; font-size:11px; font-weight:900; }
     .preview-bubble { min-height:42px; padding:10px 12px; border:1px solid #d9e8e1; border-radius:15px 15px 15px 5px; background:#fff; color:#18302a; line-height:1.6; overflow-wrap:anywhere; }
-    .line-preview { min-height:70px; padding:10px 12px; border-radius:12px; background:#fff; color:#18302a; white-space:pre-wrap; line-height:1.6; }
     .template-form { display:grid; grid-template-columns:minmax(160px,.4fr) minmax(0,1fr) auto; gap:9px; margin-bottom:14px; }
     .template-list { display:grid; gap:9px; }
     .template-card { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; padding:13px; border:1px solid var(--line); border-radius:14px; background:#fff; }
@@ -221,7 +225,7 @@
                 <label class="field">搜尋關鍵字（逗號分隔）<input id="nodeKeywords" placeholder="辨識失敗, 人臉, 偵測不到"></label>
                 <div id="nodeAnswerField" class="field full">
                   <span>答案</span>
-                  <div class="rich-toolbar" data-editor-target="nodeAnswer">
+                  <div class="rich-toolbar" data-editor-target="nodeAnswerEditor">
                     <button class="tool-button token" type="button" data-token="{name}">使用者暱稱</button>
                     <button class="tool-button token" type="button" data-token="{assistant}">小幫手名稱</button>
                     <button class="tool-button token" type="button" data-token="{choice}">剛選擇項目</button>
@@ -231,10 +235,10 @@
                     <button class="tool-button strike" type="button" data-format="s">刪除線</button>
                     <button class="tool-button" type="button" data-token="[br]">換行</button>
                   </div>
-                  <textarea id="nodeAnswer" maxlength="20000" placeholder="輸入完整處理方式"></textarea>
+                  <textarea id="nodeAnswer" maxlength="20000" hidden></textarea>
+                  <div id="nodeAnswerEditor" class="visual-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="答案內容" data-placeholder="輸入完整處理方式"></div>
                   <div class="simulator-grid">
-                    <div class="simulator"><div class="simulator-title">LIFF 對話顯示</div><div class="preview-row"><div class="preview-avatar">幫</div><div id="nodeRichPreview" class="preview-bubble"></div></div></div>
-                    <div class="simulator"><div class="simulator-title">送回 LINE 的純文字</div><div id="nodeLinePreview" class="line-preview"></div></div>
+                    <div class="simulator"><div class="simulator-title">LIFF 顯示預覽</div><div class="preview-row"><div class="preview-avatar">幫</div><div id="nodeRichPreview" class="preview-bubble"></div></div></div>
                   </div>
                 </div>
                 <label class="checkbox-field full"><input id="nodeActive" type="checkbox" checked>在前台顯示此項目</label>
@@ -257,7 +261,7 @@
               <div>
                 <div class="field">
                   <span>隨機話術（每行一種，至少 10 種）</span>
-                  <div class="rich-toolbar" data-editor-target="dialogueLines">
+                  <div class="rich-toolbar" data-editor-target="dialogueEditor">
                     <button class="tool-button token" type="button" data-token="{name}">使用者暱稱</button>
                     <button class="tool-button token" type="button" data-token="{assistant}">小幫手名稱</button>
                     <button class="tool-button token" type="button" data-token="{choice}">剛選擇項目</button>
@@ -267,13 +271,13 @@
                     <button class="tool-button strike" type="button" data-format="s">刪除線</button>
                     <button class="tool-button" type="button" data-token="[br]">換行</button>
                   </div>
-                  <textarea id="dialogueLines" rows="14"></textarea>
+                  <textarea id="dialogueLines" hidden></textarea>
+                  <div id="dialogueEditor" class="visual-editor dialogue-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="隨機話術"></div>
                 </div>
-                <p class="placeholder-note">參數按鈕會插入目前游標位置。文字樣式會顯示在 LIFF；一般 LINE 文字訊息不支援樣式，因此送回 LINE 時會轉為純文字。預覽顯示目前游標所在的那一句。</p>
+                <p class="placeholder-note">參數與文字樣式會直接呈現在編輯區，並套用於 LIFF 對話介面；下方預覽顯示第一句話術的實際效果。</p>
                 <div id="dialogueCount" class="dialogue-count"></div>
                 <div class="simulator-grid">
-                  <div class="simulator"><div class="simulator-title">LIFF 對話模擬</div><div class="preview-row"><div class="preview-avatar">幫</div><div id="dialogueRichPreview" class="preview-bubble"></div></div></div>
-                  <div class="simulator"><div class="simulator-title">送回 LINE 的純文字</div><div id="dialogueLinePreview" class="line-preview"></div></div>
+                  <div class="simulator"><div class="simulator-title">LIFF 顯示預覽</div><div class="preview-row"><div class="preview-avatar">幫</div><div id="dialogueRichPreview" class="preview-bubble"></div></div></div>
                 </div>
                 <div class="editor-actions"><button id="applyDialogueButton" class="button" type="button">套用這組話術</button></div>
               </div>
@@ -356,10 +360,10 @@
       contentStatus:document.querySelector("#contentStatus"), contentDirty:document.querySelector("#contentDirty"), reloadContent:document.querySelector("#reloadContentButton"), publishContent:document.querySelector("#publishContentButton"),
       contentModes:[...document.querySelectorAll("[data-content-mode]")], treeView:document.querySelector("#treeView"), dialogueView:document.querySelector("#dialogueView"), templatesView:document.querySelector("#templatesView"),
       nodeTree:document.querySelector("#nodeTree"), addRoot:document.querySelector("#addRootButton"), nodeForm:document.querySelector("#nodeForm"), nodeFormTitle:document.querySelector("#nodeFormTitle"),
-      nodeId:document.querySelector("#nodeId"), nodeParent:document.querySelector("#nodeParent"), nodeType:document.querySelector("#nodeType"), nodeLabel:document.querySelector("#nodeLabel"), nodeIcon:document.querySelector("#nodeIcon"), nodeKeywords:document.querySelector("#nodeKeywords"), nodeAnswer:document.querySelector("#nodeAnswer"), nodeAnswerField:document.querySelector("#nodeAnswerField"), nodeActive:document.querySelector("#nodeActive"),
+      nodeId:document.querySelector("#nodeId"), nodeParent:document.querySelector("#nodeParent"), nodeType:document.querySelector("#nodeType"), nodeLabel:document.querySelector("#nodeLabel"), nodeIcon:document.querySelector("#nodeIcon"), nodeKeywords:document.querySelector("#nodeKeywords"), nodeAnswer:document.querySelector("#nodeAnswer"), nodeAnswerEditor:document.querySelector("#nodeAnswerEditor"), nodeAnswerField:document.querySelector("#nodeAnswerField"), nodeActive:document.querySelector("#nodeActive"),
       specialActionsField:document.querySelector("#specialActionsField"), specialActions:document.querySelector("#specialActions"), addSpecialAction:document.querySelector("#addSpecialActionButton"), cancelNode:document.querySelector("#cancelNodeButton"),
-      dialogueStage:document.querySelector("#dialogueStage"), dialogueLines:document.querySelector("#dialogueLines"), dialogueCount:document.querySelector("#dialogueCount"), applyDialogue:document.querySelector("#applyDialogueButton"),
-      nodeRichPreview:document.querySelector("#nodeRichPreview"), nodeLinePreview:document.querySelector("#nodeLinePreview"), dialogueRichPreview:document.querySelector("#dialogueRichPreview"), dialogueLinePreview:document.querySelector("#dialogueLinePreview"),
+      dialogueStage:document.querySelector("#dialogueStage"), dialogueLines:document.querySelector("#dialogueLines"), dialogueEditor:document.querySelector("#dialogueEditor"), dialogueCount:document.querySelector("#dialogueCount"), applyDialogue:document.querySelector("#applyDialogueButton"),
+      nodeRichPreview:document.querySelector("#nodeRichPreview"), dialogueRichPreview:document.querySelector("#dialogueRichPreview"),
       templateForm:document.querySelector("#templateForm"), templateName:document.querySelector("#templateName"), templateDescription:document.querySelector("#templateDescription"), templateList:document.querySelector("#templateList"),
     };
 
@@ -377,11 +381,6 @@
         .replace(/\{\s*assistant\s*\}/g,"小幫手")
         .replace(/\{\s*choice\s*\}/g,"身分辨識");
     }
-    function stripRichMarkup(text) {
-      return String(text || "")
-        .replace(/\[br\]/gi,"\n")
-        .replace(/\[\/?(?:b|i|u|s)\]/gi,"");
-    }
     function richMarkupToHtml(text) {
       let html=escapeHtml(applySampleTokens(text));
       html=html.replace(/\[br\]/gi,"<br>");
@@ -391,40 +390,84 @@
       });
       return html.replace(/\r?\n/g,"<br>");
     }
-    function currentTextareaLine(textarea) {
-      const value=textarea.value || "", cursor=textarea.selectionStart ?? 0;
-      const start=value.lastIndexOf("\n",Math.max(0,cursor-1))+1;
-      const foundEnd=value.indexOf("\n",cursor), end=foundEnd<0 ? value.length : foundEnd;
-      return value.slice(start,end).trim() || value.split(/\r?\n/).find(line=>line.trim()) || "在這裡預覽內容";
+    function markupToEditorHtml(text) {
+      let html=escapeHtml(String(text || ""));
+      html=html.replace(/\[br\]/gi,'<br data-soft-break="true">');
+      [["b","strong"],["i","em"],["u","u"],["s","s"]].forEach(([tag,element])=>{
+        html=html.replace(new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\/${tag}\\]`,"gi"),`<${element}>$1</${element}>`);
+      });
+      const tokenLabels={"{name}":"使用者暱稱","{assistant}":"小幫手名稱","{choice}":"剛選擇項目"};
+      Object.entries(tokenLabels).forEach(([token,label])=>{
+        html=html.replaceAll(token,`<span class="editor-token" data-token="${token}" contenteditable="false">${label}</span>`);
+      });
+      return html.replace(/\r?\n/g,'<br data-variant-break="true">');
+    }
+    function nodeToMarkup(node) {
+      if (node.nodeType===Node.TEXT_NODE) return String(node.nodeValue || "").replace(/\u00a0/g," ");
+      if (node.nodeType!==Node.ELEMENT_NODE) return "";
+      const element=node;
+      if (element.classList.contains("editor-token")) return element.dataset.token || "";
+      if (element.tagName==="BR") return element.dataset.softBreak==="true" ? "[br]" : "\n";
+      let content=[...element.childNodes].map(nodeToMarkup).join("");
+      const tag=element.tagName;
+      if (["B","STRONG"].includes(tag)) content=`[b]${content}[/b]`;
+      else if (["I","EM"].includes(tag)) content=`[i]${content}[/i]`;
+      else if (tag==="U") content=`[u]${content}[/u]`;
+      else if (["S","STRIKE"].includes(tag)) content=`[s]${content}[/s]`;
+      else if (tag==="SPAN") {
+        const style=element.style;
+        if (style.textDecoration.includes("line-through")) content=`[s]${content}[/s]`;
+        if (style.textDecoration.includes("underline")) content=`[u]${content}[/u]`;
+        if (style.fontStyle==="italic") content=`[i]${content}[/i]`;
+        if (style.fontWeight==="bold" || Number(style.fontWeight)>=600) content=`[b]${content}[/b]`;
+      }
+      if (["DIV","P"].includes(tag) && !content.endsWith("\n")) content+="\n";
+      return content;
+    }
+    function editorToMarkup(editor) {
+      return [...editor.childNodes].map(nodeToMarkup).join("").replace(/\n{3,}/g,"\n\n").replace(/\n+$/,"");
+    }
+    function setEditorMarkup(editor,storage,text) {
+      storage.value=String(text || "");
+      editor.innerHTML=markupToEditorHtml(storage.value);
+    }
+    function syncEditor(editor,storage) {
+      storage.value=editorToMarkup(editor);
+      return storage.value;
+    }
+    function firstDialogueLine() {
+      return (elements.dialogueLines.value || "").split(/\r?\n/).find(line=>line.trim()) || "在這裡預覽內容";
     }
     function updateNodePreview() {
+      syncEditor(elements.nodeAnswerEditor,elements.nodeAnswer);
       const source=elements.nodeAnswer.value || "在這裡預覽答案內容";
       elements.nodeRichPreview.innerHTML=richMarkupToHtml(source);
-      elements.nodeLinePreview.textContent=stripRichMarkup(applySampleTokens(source));
     }
     function updateDialoguePreview() {
-      const source=currentTextareaLine(elements.dialogueLines);
+      syncEditor(elements.dialogueEditor,elements.dialogueLines);
+      const source=firstDialogueLine();
       elements.dialogueRichPreview.innerHTML=richMarkupToHtml(source);
-      elements.dialogueLinePreview.textContent=stripRichMarkup(applySampleTokens(source));
     }
-    function insertAtSelection(textarea,text) {
-      const start=textarea.selectionStart ?? textarea.value.length, end=textarea.selectionEnd ?? start;
-      textarea.setRangeText(text,start,end,"end"); textarea.focus();
-      textarea.dispatchEvent(new Event("input",{bubbles:true}));
-    }
-    function wrapSelection(textarea,tag) {
-      const start=textarea.selectionStart ?? 0, end=textarea.selectionEnd ?? start;
-      const selected=textarea.value.slice(start,end), sample=selected || "文字";
-      const replacement=`[${tag}]${sample}[/${tag}]`;
-      textarea.setRangeText(replacement,start,end,"end");
-      if (!selected) textarea.setSelectionRange(start+tag.length+2,start+tag.length+4);
-      textarea.focus(); textarea.dispatchEvent(new Event("input",{bubbles:true}));
+    function insertEditorHtml(editor,html) {
+      editor.focus();
+      document.execCommand("insertHTML",false,html);
+      editor.dispatchEvent(new Event("input",{bubbles:true}));
     }
     function handleRichToolbar(event) {
       const button=event.target.closest("button"); if (!button) return;
-      const toolbar=button.closest("[data-editor-target]"), textarea=document.querySelector(`#${toolbar?.dataset.editorTarget}`); if (!textarea) return;
-      if (button.dataset.format) wrapSelection(textarea,button.dataset.format);
-      else if (button.dataset.token) insertAtSelection(textarea,button.dataset.token);
+      const toolbar=button.closest("[data-editor-target]"), editor=document.querySelector(`#${toolbar?.dataset.editorTarget}`); if (!editor) return;
+      editor.focus();
+      if (button.dataset.format) {
+        const commands={b:"bold",i:"italic",u:"underline",s:"strikeThrough"};
+        document.execCommand(commands[button.dataset.format],false,null);
+        editor.dispatchEvent(new Event("input",{bubbles:true}));
+      } else if (button.dataset.token==="[br]") {
+        insertEditorHtml(editor,'<br data-soft-break="true">');
+      } else if (button.dataset.token) {
+        const labels={"{name}":"使用者暱稱","{assistant}":"小幫手名稱","{choice}":"剛選擇項目"};
+        const token=button.dataset.token;
+        insertEditorHtml(editor,`<span class="editor-token" data-token="${token}" contenteditable="false">${labels[token] || token}</span>&nbsp;`);
+      }
     }
     function apiError(code) {
       return ({
@@ -644,7 +687,6 @@
       const isAnswer=elements.nodeType.value==="answer";
       elements.nodeAnswerField.hidden=!isAnswer;
       elements.specialActionsField.hidden=!isAnswer;
-      elements.nodeAnswer.required=isAnswer;
     }
     function openNodeEditor(nodeId="",parentId="") {
       const located=nodeId ? locateNode(nodeId) : null;
@@ -657,7 +699,7 @@
       elements.nodeLabel.value=node?.label || "";
       elements.nodeIcon.value=node?.icon || "";
       elements.nodeKeywords.value=(node?.keywords || []).join(", ");
-      elements.nodeAnswer.value=node?.answer || "";
+      setEditorMarkup(elements.nodeAnswerEditor,elements.nodeAnswer,node?.answer || "");
       elements.nodeActive.checked=node?.active!==false;
       renderParentOptions(node ? located.parentId : parentId,node);
       (node?.actions || []).forEach(createSpecialActionRow);
@@ -672,6 +714,7 @@
     }
     function applyNodeEditor(event) {
       event.preventDefault();
+      syncEditor(elements.nodeAnswerEditor,elements.nodeAnswer);
       const id=elements.nodeId.value;
       const existing=id ? locateNode(id) : null;
       const type=elements.nodeType.value;
@@ -720,11 +763,12 @@
     function fillDialogueStage() {
       const stage=elements.dialogueStage.value;
       const lines=state.content?.dialogue?.[stage] || [];
-      elements.dialogueLines.value=lines.join("\n");
+      setEditorMarkup(elements.dialogueEditor,elements.dialogueLines,lines.join("\n"));
       elements.dialogueCount.textContent=`目前 ${lines.length} 種話術`;
       updateDialoguePreview();
     }
     function applyDialogueStage() {
+      syncEditor(elements.dialogueEditor,elements.dialogueLines);
       const stage=elements.dialogueStage.value;
       const lines=elements.dialogueLines.value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
       if (lines.length<10) { setStatus(elements.contentStatus,"每個對話階段至少需要 10 種話術。",true); return; }
@@ -843,9 +887,9 @@
     elements.addRoot.addEventListener("click",()=>openNodeEditor()); elements.nodeTree.addEventListener("click",handleNodeAction);
     elements.nodeType.addEventListener("change",syncNodeTypeFields); elements.nodeForm.addEventListener("submit",applyNodeEditor); elements.cancelNode.addEventListener("click",closeNodeEditor);
     elements.addSpecialAction.addEventListener("click",()=>createSpecialActionRow());
-    document.querySelectorAll(".rich-toolbar").forEach(toolbar=>toolbar.addEventListener("click",handleRichToolbar));
-    elements.nodeAnswer.addEventListener("input",updateNodePreview);
-    elements.dialogueStage.addEventListener("change",fillDialogueStage); elements.dialogueLines.addEventListener("input",()=>{ const count=elements.dialogueLines.value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).length; elements.dialogueCount.textContent=`目前 ${count} 種話術（尚未套用）`; updateDialoguePreview(); }); elements.dialogueLines.addEventListener("click",updateDialoguePreview); elements.dialogueLines.addEventListener("keyup",updateDialoguePreview); elements.applyDialogue.addEventListener("click",applyDialogueStage);
+    document.querySelectorAll(".rich-toolbar").forEach(toolbar=>{ toolbar.addEventListener("mousedown",event=>{ if (event.target.closest("button")) event.preventDefault(); }); toolbar.addEventListener("click",handleRichToolbar); });
+    elements.nodeAnswerEditor.addEventListener("input",updateNodePreview);
+    elements.dialogueStage.addEventListener("change",fillDialogueStage); elements.dialogueEditor.addEventListener("input",()=>{ syncEditor(elements.dialogueEditor,elements.dialogueLines); const count=elements.dialogueLines.value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).length; elements.dialogueCount.textContent=`目前 ${count} 種話術（尚未套用）`; updateDialoguePreview(); }); elements.dialogueEditor.addEventListener("click",updateDialoguePreview); elements.dialogueEditor.addEventListener("keyup",updateDialoguePreview); elements.applyDialogue.addEventListener("click",applyDialogueStage);
     elements.templateForm.addEventListener("submit",saveTemplate); elements.templateList.addEventListener("click",handleTemplateAction);
     async function start() {
       if (LIFF_ID==="YOUR_LIFF_ID") { setStatus(elements.messageStatus,"請先將 admin.html 裡的 YOUR_LIFF_ID 改成目前使用的 LIFF ID。",true); return; }
