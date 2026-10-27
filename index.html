@@ -19,15 +19,17 @@
     .boot-dots i:nth-child(2) { animation-delay:.14s; }
     .boot-dots i:nth-child(3) { animation-delay:.28s; }
     button,input { font:inherit; }
-    main { width:min(100%,760px); min-height:100vh; margin:auto; padding:calc(18px + env(safe-area-inset-top)) 18px calc(32px + env(safe-area-inset-bottom)); }
-    header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
+    main { width:min(100%,760px); min-height:100vh; margin:auto; padding:calc(18px + env(safe-area-inset-top)) 18px calc(110px + env(safe-area-inset-bottom)); }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
     .brand { font-size:18px; font-weight:800; }
     .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
     .status { padding:7px 10px; border:1px solid #f0b8b0; border-radius:999px; background:#fff1ef; color:#a5392d; font-size:12px; }
     .status[hidden] { display:none; }
-    .admin-link { padding:8px 12px; border-radius:999px; background:var(--ink); color:white; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 7px 18px rgba(24,48,42,.16); }
+    .admin-link { display:inline-flex; align-items:center; min-height:38px; padding:0 12px; border-radius:10px; background:var(--ink); color:#fff; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 7px 18px rgba(24,48,42,.16); }
     .admin-link[hidden] { display:none; }
-    .conversation-link { padding:8px 12px; border:1px solid #9ed9bd; border-radius:999px; background:white; color:var(--green-dark); font-size:12px; font-weight:800; text-decoration:none; white-space:nowrap; cursor:pointer; }
+    .mode-switch { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; width:min(calc(100% - 32px),320px); margin:0 auto 24px; padding:4px; border:1px solid var(--line); border-radius:14px; background:#e7f2ed; }
+    .mode-option { display:grid; place-items:center; min-height:42px; padding:8px 12px; border-radius:10px; color:var(--muted); font-size:13px; font-weight:800; text-align:center; text-decoration:none; }
+    .mode-option.active { background:#fff; color:var(--green-dark); box-shadow:0 3px 12px rgba(22,72,55,.10); }
     h1 { margin:0 0 8px; font-size:clamp(30px,8vw,42px); letter-spacing:-.04em; }
     .lead { margin:0 0 20px; color:var(--muted); line-height:1.65; }
     .search { width:100%; min-height:56px; padding:0 18px; border:2px solid var(--line); border-radius:16px; background:white; color:var(--ink); outline:none; box-shadow:0 10px 28px rgba(22,72,55,.08); }
@@ -56,7 +58,8 @@
     .answer h3 { margin:15px 0 6px; font-size:14px; }
     .answer p { margin:0; color:#41534c; line-height:1.7; white-space:pre-line; }
     .empty { padding:32px 16px; border:1px dashed var(--line); border-radius:17px; background:white; color:var(--muted); text-align:center; }
-    .feedback-button { width:100%; min-height:52px; margin-top:18px; border:0; border-radius:15px; background:var(--green); color:white; font-weight:800; cursor:pointer; box-shadow:0 10px 22px rgba(6,199,85,.20); }
+    .finish-bar { position:fixed; z-index:8; left:50%; bottom:0; width:min(100%,760px); padding:10px 18px calc(10px + env(safe-area-inset-bottom)); translate:-50% 0; background:linear-gradient(180deg,rgba(243,250,247,0),rgba(243,250,247,.96) 24%); }
+    .feedback-button { width:100%; min-height:52px; border:0; border-radius:15px; background:var(--green); color:white; font-weight:800; cursor:pointer; box-shadow:0 10px 22px rgba(6,199,85,.20); }
     footer { margin-top:18px; color:var(--muted); font-size:12px; line-height:1.6; text-align:center; }
     .modal-backdrop { position:fixed; inset:0; z-index:10; display:none; align-items:flex-end; justify-content:center; padding:18px; background:rgba(9,27,21,.46); }
     .modal-backdrop.show { display:flex; }
@@ -69,7 +72,7 @@
     .no { border:1px solid var(--green); background:white; color:var(--green-dark); }
     .cancel { border:0; background:#f0f4f2; color:var(--muted); }
     @keyframes bootPulse { 0%,70%,100% { opacity:.35; transform:translateY(0); } 35% { opacity:1; transform:translateY(-2px); } }
-    @media (max-width:520px) { header { align-items:flex-start; flex-direction:column; } .header-actions { width:100%; flex-wrap:wrap; justify-content:flex-start; } }
+    @media (max-width:520px) { .header-actions { flex-wrap:wrap; } }
     @media (min-width:620px) { main { padding-inline:28px; } .modal-backdrop { align-items:center; } }
   </style>
 </head>
@@ -85,12 +88,15 @@
   <header>
     <div class="brand">小幫手</div>
     <div class="header-actions">
-      <a class="conversation-link" href="conversation.html">對話引導</a>
       <a id="adminLink" class="admin-link" href="admin.html" hidden>管理中心</a>
-      <button id="finishButton" class="conversation-link" type="button">結束查詢</button>
       <div id="status" class="status" role="alert" hidden></div>
     </div>
   </header>
+
+  <nav class="mode-switch" aria-label="查詢模式">
+    <a class="mode-option active" href="index.html?mode=faq" aria-current="page">問答集模式</a>
+    <a class="mode-option" href="conversation.html">對話引導</a>
+  </nav>
 
   <h1 id="greetingTitle">服務問題查詢</h1>
   <p class="lead">輸入問題或關鍵字，查看常見處置方式。查詢內容不會保存。</p>
@@ -104,9 +110,10 @@
   </div>
   <section id="results" class="results" aria-live="polite"></section>
 
-  <button id="feedbackButton" class="feedback-button" type="button">回到 LINE@</button>
   <footer>如涉及個人資料、設備維修或個別案件，請回到 LINE@ 由客服協助。</footer>
 </main>
+
+<div class="finish-bar"><button id="feedbackButton" class="feedback-button" type="button">結束查詢</button></div>
 
 <div id="feedbackModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
   <div class="modal">
@@ -124,7 +131,7 @@
   // 建立 LIFF App 後，請將 YOUR_LIFF_ID 換成實際的 LIFF ID。
   const LIFF_ID = "2011870813-C7Krkv36";
   const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
-  const SESSION_KEY = "lawa-liff-session-v2";
+  const SESSION_KEY = "helper-liff-session-v3";
   const SESSION_TTL = 15 * 60 * 1000;
 
   const faqs = [
@@ -170,7 +177,6 @@
   const statusBox = document.querySelector("#status");
   const bootScreen = document.querySelector("#bootScreen");
   const adminLink = document.querySelector("#adminLink");
-  const finishButton = document.querySelector("#finishButton");
   const greetingTitle = document.querySelector("#greetingTitle");
   const modal = document.querySelector("#feedbackModal");
   let selectedCategory = null;
@@ -272,7 +278,6 @@
 
   function openFeedback() { modal.classList.add("show"); }
   document.querySelector("#feedbackButton").addEventListener("click", openFeedback);
-  finishButton.addEventListener("click", openFeedback);
   modal.addEventListener("click", event => {
     if (event.target === modal) modal.classList.remove("show");
   });
@@ -331,21 +336,6 @@
     }
   }
 
-  async function applyDefaultHomeMode() {
-    if (new URLSearchParams(location.search).get("mode") === "faq") return false;
-    try {
-      const response = await fetch(`${API_BASE}/api/public-settings`);
-      const data = await response.json().catch(() => ({}));
-      if (response.ok && data.ok && data.homeMode === "conversation") {
-        location.replace("conversation.html");
-        return true;
-      }
-    } catch (error) {
-      console.warn("無法讀取預設首頁模式，改用問答集模式。", error);
-    }
-    return false;
-  }
-
   async function initializeLiff() {
     if (LIFF_ID === "YOUR_LIFF_ID" || !window.liff) {
       bootScreen.classList.add("hidden");
@@ -366,7 +356,6 @@
       if (userDisplayName) writeSessionCache({ userId:currentUserId, displayName:userDisplayName });
       if (userDisplayName) greetingTitle.textContent = `嗨，${userDisplayName}`;
       await detectAdmin(currentUserId);
-      redirecting = await applyDefaultHomeMode();
     } catch (error) {
       console.error(error);
       statusBox.textContent = "LINE 連線失敗，請重新開啟";

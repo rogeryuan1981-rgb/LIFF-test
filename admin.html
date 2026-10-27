@@ -68,14 +68,6 @@
     .uid { margin-top:3px; color:var(--muted); font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:11px; overflow-wrap:anywhere; }
     .self { display:inline-block; margin-left:6px; padding:2px 6px; border-radius:999px; background:#e8f9ef; color:#08783a; font-size:11px; }
     .candidate-search { margin-bottom:10px; }
-    .settings-panel { padding:18px; }
-    .setting-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:16px 0; }
-    .setting-option { position:relative; display:block; padding:16px; border:1px solid var(--line); border-radius:15px; cursor:pointer; }
-    .setting-option:has(input:checked) { border-color:var(--navy-2); background:#eef4fb; box-shadow:0 0 0 2px rgba(29,59,97,.08); }
-    .setting-option input { position:absolute; width:1px; height:1px; opacity:0; }
-    .setting-option strong { display:block; margin-bottom:5px; color:var(--navy); }
-    .setting-option span { color:var(--muted); font-size:13px; line-height:1.55; }
-    .setting-actions { display:flex; justify-content:flex-end; }
     @media (max-width:680px) {
       .shell { padding-top:14px; }
       .topbar { align-items:flex-start; }
@@ -85,7 +77,6 @@
       time { display:block; margin-top:4px; }
       .person { grid-template-columns:40px minmax(0,1fr); }
       .person .button { grid-column:1 / -1; }
-      .setting-options { grid-template-columns:1fr; }
     }
   </style>
 </head>
@@ -108,7 +99,6 @@
     <nav class="tabs" aria-label="管理中心分頁">
       <button class="tab active" type="button" data-tab="messages">對話紀錄</button>
       <button class="tab" type="button" data-tab="permissions">管理員權限</button>
-      <button class="tab" type="button" data-tab="settings">首頁設定</button>
     </nav>
 
     <section id="messagesPanel" class="tab-panel">
@@ -155,28 +145,6 @@
       </div>
     </section>
 
-    <section id="settingsPanel" class="tab-panel" hidden>
-      <p id="settingStatus" class="status" hidden></p>
-      <form id="settingForm" class="panel settings-panel">
-        <div>
-          <h2>預設首頁模式</h2>
-          <div class="hint">設定使用者從 LINE 開啟服務查詢時，預設先看到哪一種操作方式。</div>
-        </div>
-        <div class="setting-options">
-          <label class="setting-option">
-            <input type="radio" name="homeMode" value="conversation">
-            <strong>對話引導</strong>
-            <span>以逐步對話及按鈕，引導使用者找到問題與答案。</span>
-          </label>
-          <label class="setting-option">
-            <input type="radio" name="homeMode" value="faq">
-            <strong>問答集模式</strong>
-            <span>直接瀏覽分類、搜尋問題並展開查看答案。</span>
-          </label>
-        </div>
-        <div class="setting-actions"><button id="saveSettingButton" class="button" type="submit">儲存設定</button></div>
-      </form>
-    </section>
   </main>
 
   <script>
@@ -184,11 +152,11 @@
     const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
     const state = {
       messages:[], nextBefore:null, idToken:null, loading:false,
-      viewerUserId:null, admins:[], candidates:[], adminBusy:false, adminsLoaded:false, settingsLoaded:false,
+      viewerUserId:null, admins:[], candidates:[], adminBusy:false, adminsLoaded:false,
     };
     const elements = {
       tabs:[...document.querySelectorAll("[data-tab]")],
-      messagesPanel:document.querySelector("#messagesPanel"), permissionsPanel:document.querySelector("#permissionsPanel"), settingsPanel:document.querySelector("#settingsPanel"),
+      messagesPanel:document.querySelector("#messagesPanel"), permissionsPanel:document.querySelector("#permissionsPanel"),
       viewer:document.querySelector("#viewer"), viewerName:document.querySelector("#viewerName"), viewerImage:document.querySelector("#viewerImage"),
       messageStatus:document.querySelector("#messageStatus"), messageCount:document.querySelector("#messageCount"), messageList:document.querySelector("#messageList"),
       search:document.querySelector("#searchInput"), type:document.querySelector("#typeFilter"), conversation:document.querySelector("#conversationFilter"),
@@ -196,7 +164,6 @@
       permissionStatus:document.querySelector("#permissionStatus"), adminCount:document.querySelector("#adminCount"), candidateCount:document.querySelector("#candidateCount"),
       adminList:document.querySelector("#adminList"), candidateList:document.querySelector("#candidateList"), manualForm:document.querySelector("#manualForm"),
       uid:document.querySelector("#uidInput"), name:document.querySelector("#nameInput"), candidateSearch:document.querySelector("#candidateSearch"),
-      settingStatus:document.querySelector("#settingStatus"), settingForm:document.querySelector("#settingForm"), saveSetting:document.querySelector("#saveSettingButton"),
     };
 
     function setStatus(element, message, error=false) {
@@ -212,8 +179,6 @@
         self_removal_not_allowed:"不能移除目前登入的管理員帳號。",
         last_admin:"不能移除最後一位管理員。",
         admin_not_found:"找不到這位管理員。",
-        invalid_home_mode:"首頁模式設定不正確。",
-        settings_unavailable:"目前無法讀取首頁設定，請確認 D1 migration 已完成。",
       })[code] || "操作失敗，請稍後再試。";
     }
     async function api(path, options={}) {
@@ -328,38 +293,15 @@
       catch (error) { setStatus(elements.permissionStatus,error.message,true); }
       finally { state.adminBusy=false; renderAdmins(); }
     }
-    async function loadSettings() {
-      setStatus(elements.settingStatus,"正在讀取首頁設定…");
-      try {
-        const data=await api("/api/settings");
-        const input=elements.settingForm.querySelector(`input[name="homeMode"][value="${data.homeMode}"]`);
-        if (input) input.checked=true;
-        state.settingsLoaded=true;
-        setStatus(elements.settingStatus,"");
-      } catch (error) { setStatus(elements.settingStatus,error.message,true); }
-    }
-    async function saveSettings(event) {
-      event.preventDefault();
-      const homeMode=new FormData(elements.settingForm).get("homeMode");
-      if (!homeMode) { setStatus(elements.settingStatus,"請先選擇首頁模式。",true); return; }
-      elements.saveSetting.disabled=true; setStatus(elements.settingStatus,"正在儲存首頁設定…");
-      try {
-        await api("/api/settings",{method:"PUT",body:JSON.stringify({homeMode})});
-        setStatus(elements.settingStatus,"設定已儲存；使用者下次從 LINE 開啟時就會套用。",false);
-      } catch (error) { setStatus(elements.settingStatus,error.message,true); }
-      finally { elements.saveSetting.disabled=false; }
-    }
     async function showTab(name) {
       elements.tabs.forEach((tab)=>tab.classList.toggle("active",tab.dataset.tab===name));
-      elements.messagesPanel.hidden=name!=="messages"; elements.permissionsPanel.hidden=name!=="permissions"; elements.settingsPanel.hidden=name!=="settings";
+      elements.messagesPanel.hidden=name!=="messages"; elements.permissionsPanel.hidden=name!=="permissions";
       if (name==="permissions" && !state.adminsLoaded) await loadAdmins();
-      if (name==="settings" && !state.settingsLoaded) await loadSettings();
     }
     elements.tabs.forEach((tab)=>tab.addEventListener("click",()=>showTab(tab.dataset.tab)));
     elements.search.addEventListener("input",renderMessages); elements.type.addEventListener("change",renderMessages); elements.conversation.addEventListener("change",renderMessages);
     elements.refresh.addEventListener("click",()=>loadMessages({reset:true})); elements.loadMore.addEventListener("click",()=>loadMessages()); elements.candidateSearch.addEventListener("input",renderAdmins);
     elements.manualForm.addEventListener("submit",async(event)=>{ event.preventDefault(); const success=await addAdmin({user_id:elements.uid.value.trim(),display_name:elements.name.value.trim()}); if (success) { elements.uid.value=""; elements.name.value=""; } });
-    elements.settingForm.addEventListener("submit",saveSettings);
     async function start() {
       if (LIFF_ID==="YOUR_LIFF_ID") { setStatus(elements.messageStatus,"請先將 admin.html 裡的 YOUR_LIFF_ID 改成目前使用的 LIFF ID。",true); return; }
       try {

@@ -22,16 +22,19 @@
     .boot-dots { display:flex; gap:5px; }
     .boot-dots i { width:7px; height:7px; border-radius:50%; background:#88a397; animation:pulse 1s infinite; }
     button { font:inherit; }
-    .app { width:min(100%,760px); min-height:100vh; margin:auto; background:linear-gradient(180deg,#f8fcfa 0%,var(--wash) 100%); }
-    .topbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid rgba(220,233,227,.9); background:rgba(248,252,250,.93); backdrop-filter:blur(14px); }
+    .app { width:min(100%,760px); min-height:100vh; margin:auto; padding-bottom:calc(86px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,#f8fcfa 0%,var(--wash) 100%); }
+    .topbar { position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid rgba(220,233,227,.9); background:rgba(248,252,250,.93); backdrop-filter:blur(14px); }
     .brand { display:flex; align-items:center; gap:10px; min-width:0; }
     .avatar-logo { display:grid; place-items:center; width:42px; height:42px; border-radius:14px; background:linear-gradient(145deg,#0b9857,#056a3b); color:#fff; font-weight:900; box-shadow:0 8px 20px rgba(6,199,85,.22); }
     .brand-title { font-weight:900; }
     .brand-subtitle { margin-top:2px; color:var(--muted); font-size:12px; }
-    .header-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:7px; margin-left:auto; }
-    .header-button { padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--green-dark); font-size:12px; font-weight:800; text-decoration:none; cursor:pointer; }
-    .header-button[hidden] { display:none; }
-    .chat { display:flex; flex-direction:column; gap:13px; min-height:calc(100vh - 84px); padding:20px 16px calc(34px + env(safe-area-inset-bottom)); }
+    .admin-link { display:inline-flex; align-items:center; min-height:38px; padding:0 12px; border-radius:10px; background:var(--ink); color:#fff; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 7px 18px rgba(24,48,42,.16); }
+    .admin-link[hidden] { display:none; }
+    .mode-switch { position:sticky; top:calc(67px + env(safe-area-inset-top)); z-index:4; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; width:min(calc(100% - 32px),320px); margin:14px auto 0; padding:4px; border:1px solid var(--line); border-radius:14px; background:#e7f2ed; box-shadow:0 5px 16px rgba(22,72,55,.07); }
+    .mode-option { display:grid; place-items:center; min-height:42px; padding:8px 12px; border-radius:10px; color:var(--muted); font-size:13px; font-weight:800; text-align:center; text-decoration:none; }
+    .mode-option.active { background:#fff; color:var(--green-dark); box-shadow:0 3px 12px rgba(22,72,55,.10); }
+    .chat { display:flex; flex-direction:column; gap:13px; min-height:calc(100vh - 154px); padding:20px 16px 34px; }
+    .chat > * { scroll-margin-top:130px; scroll-margin-bottom:84px; }
     .row { display:flex; align-items:flex-end; gap:8px; animation:rise .2s ease-out; }
     .row.user { justify-content:flex-end; }
     .bot-avatar { flex:0 0 auto; display:grid; place-items:center; width:30px; height:30px; border-radius:10px; background:#0b8750; color:#fff; font-size:12px; font-weight:900; }
@@ -59,6 +62,8 @@
     .yes { border:0; background:var(--green); color:#fff; }
     .no { border:1px solid var(--green); background:#fff; color:var(--green-dark); }
     .cancel { border:0; background:#f0f4f2; color:var(--muted); }
+    .finish-bar { position:fixed; z-index:8; left:50%; bottom:0; width:min(100%,760px); padding:10px 16px calc(10px + env(safe-area-inset-bottom)); translate:-50% 0; background:linear-gradient(180deg,rgba(243,250,247,0),rgba(243,250,247,.96) 24%); }
+    .finish-button { width:100%; min-height:52px; border:0; border-radius:15px; background:var(--green); color:#fff; font-weight:800; cursor:pointer; box-shadow:0 10px 22px rgba(6,199,85,.20); }
     @keyframes rise { from { opacity:0; transform:translateY(5px); } }
     @keyframes pulse { 0%,70%,100% { opacity:.35; transform:translateY(0); } 35% { opacity:1; transform:translateY(-2px); } }
     @keyframes cursorBlink { 0%,45% { opacity:1; } 46%,100% { opacity:0; } }
@@ -77,20 +82,22 @@
   <main class="app">
     <header class="topbar">
       <div class="brand">
-        <div class="avatar-logo" aria-hidden="true">拉</div>
+        <div class="avatar-logo" aria-hidden="true">幫</div>
         <div>
           <div class="brand-title">小幫手</div>
           <div id="connectionStatus" class="brand-subtitle">互動式服務查詢</div>
         </div>
       </div>
-      <div class="header-actions">
-        <a class="header-button" href="index.html?mode=faq">問答集模式</a>
-        <a id="adminLink" class="header-button" href="admin.html" hidden>管理中心</a>
-        <button id="finishButton" class="header-button" type="button">結束查詢</button>
-      </div>
+      <a id="adminLink" class="admin-link" href="admin.html" hidden>管理中心</a>
     </header>
+    <nav class="mode-switch" aria-label="查詢模式">
+      <a class="mode-option" href="index.html?mode=faq">問答集模式</a>
+      <a class="mode-option active" href="conversation.html" aria-current="page">對話引導</a>
+    </nav>
     <section id="chat" class="chat" aria-live="polite"></section>
   </main>
+
+  <div class="finish-bar"><button id="finishButton" class="finish-button" type="button">結束查詢</button></div>
 
   <div id="feedbackModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
     <div class="modal">
@@ -108,7 +115,7 @@
     const LIFF_ID = "2011870813-C7Krkv36";
     const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
     const ASSISTANT_NAME = "小幫手";
-    const SESSION_KEY = "lawa-liff-session-v2";
+    const SESSION_KEY = "helper-liff-session-v3";
     const SESSION_TTL = 15 * 60 * 1000;
 
     function readSessionCache() {
@@ -375,23 +382,23 @@
       randomHistory.set(key,index);
       return formatTemplate(lines[index],extra);
     }
-    function scrollToLatest() { requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"})); }
+    function scrollToLatest() { requestAnimationFrame(()=>chat.lastElementChild?.scrollIntoView({block:"nearest",behavior:"smooth"})); }
     function addMessage(role,text,className="") {
       const row=document.createElement("div"); row.className=`row ${role}`;
-      if (role==="bot") { const avatar=document.createElement("div"); avatar.className="bot-avatar"; avatar.textContent="拉"; row.appendChild(avatar); }
+      if (role==="bot") { const avatar=document.createElement("div"); avatar.className="bot-avatar"; avatar.textContent="幫"; row.appendChild(avatar); }
       const bubble=document.createElement("div"); bubble.className=`bubble ${className}`.trim(); bubble.textContent=text; row.appendChild(bubble); chat.appendChild(row); scrollToLatest();
       return row;
     }
     function addUserMessage(text) { addMessage("user",text); }
     async function botSay(text,className="") {
-      const typing=document.createElement("div"); typing.className="row bot"; typing.innerHTML='<div class="bot-avatar">拉</div><div class="bubble typing"><i></i><i></i><i></i></div>'; chat.appendChild(typing); scrollToLatest();
+      const typing=document.createElement("div"); typing.className="row bot"; typing.innerHTML='<div class="bot-avatar">幫</div><div class="bubble typing"><i></i><i></i><i></i></div>'; chat.appendChild(typing); scrollToLatest();
       const characters=Array.from(text);
       const thinkingDelay=Math.min(1100,360+characters.length*3)+Math.floor(Math.random()*260);
       await new Promise(resolve=>setTimeout(resolve,thinkingDelay));
       typing.remove();
 
       const row=document.createElement("div"); row.className="row bot";
-      const avatar=document.createElement("div"); avatar.className="bot-avatar"; avatar.textContent="拉";
+      const avatar=document.createElement("div"); avatar.className="bot-avatar"; avatar.textContent="幫";
       const bubble=document.createElement("div"); bubble.className=`bubble ${className} typing-text`.trim(); bubble.setAttribute("aria-label",text); bubble.title="點一下可立即顯示完整內容";
       row.append(avatar,bubble); chat.appendChild(row); scrollToLatest();
 
@@ -404,7 +411,7 @@
         if (skipTyping) { bubble.textContent=text; break; }
         const character=characters[index];
         bubble.textContent+=character;
-        if (index%7===0 || /[。！？：；，、\n]/.test(character)) window.scrollTo({top:document.body.scrollHeight});
+        if (index%7===0 || /[。！？：；，、\n]/.test(character)) scrollToLatest();
 
         const isAnswer=className.includes("answer");
         let delay=isAnswer ? 11+Math.random()*13 : 24+Math.random()*27;
