@@ -28,10 +28,11 @@
     .avatar-logo { display:grid; place-items:center; width:42px; height:42px; border-radius:14px; background:linear-gradient(145deg,#0b9857,#056a3b); color:#fff; font-weight:900; box-shadow:0 8px 20px rgba(6,199,85,.22); }
     .brand-title { font-weight:900; }
     .brand-subtitle { margin-top:2px; color:var(--muted); font-size:12px; }
+    .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
     .admin-link { display:inline-flex; align-items:center; min-height:38px; padding:0 12px; border-radius:10px; background:var(--ink); color:#fff; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 7px 18px rgba(24,48,42,.16); }
     .admin-link[hidden] { display:none; }
-    .mode-switch { position:sticky; top:calc(67px + env(safe-area-inset-top)); z-index:4; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; width:min(calc(100% - 32px),320px); margin:14px auto 0; padding:4px; border:1px solid var(--line); border-radius:14px; background:#e7f2ed; box-shadow:0 5px 16px rgba(22,72,55,.07); }
-    .mode-option { display:grid; place-items:center; min-height:42px; padding:8px 12px; border-radius:10px; color:var(--muted); font-size:13px; font-weight:800; text-align:center; text-decoration:none; }
+    .mode-switch { display:flex; align-items:center; gap:3px; width:max-content; padding:3px; border:1px solid var(--line); border-radius:12px; background:#e7f2ed; }
+    .mode-option { display:grid; place-items:center; min-height:32px; padding:6px 10px; border-radius:9px; color:var(--muted); font-size:12px; font-weight:800; white-space:nowrap; text-align:center; text-decoration:none; }
     .mode-option.active { background:#fff; color:var(--green-dark); box-shadow:0 3px 12px rgba(22,72,55,.10); }
     .chat { display:flex; flex-direction:column; gap:13px; min-height:calc(100vh - 154px); padding:20px 16px 34px; }
     .chat > * { scroll-margin-top:130px; scroll-margin-bottom:84px; }
@@ -67,6 +68,7 @@
     @keyframes rise { from { opacity:0; transform:translateY(5px); } }
     @keyframes pulse { 0%,70%,100% { opacity:.35; transform:translateY(0); } 35% { opacity:1; transform:translateY(-2px); } }
     @keyframes cursorBlink { 0%,45% { opacity:1; } 46%,100% { opacity:0; } }
+    @media (max-width:560px) { .topbar { flex-wrap:wrap; } .header-actions { width:100%; } }
     @media (min-width:620px) { .chat { padding-inline:28px; } .modal-backdrop { align-items:center; } }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
   </style>
@@ -88,12 +90,14 @@
           <div id="connectionStatus" class="brand-subtitle">互動式服務查詢</div>
         </div>
       </div>
-      <a id="adminLink" class="admin-link" href="admin.html" hidden>管理中心</a>
+      <div class="header-actions">
+        <nav class="mode-switch" aria-label="查詢模式">
+          <a class="mode-option" href="index.html?mode=faq">問答集模式</a>
+          <a class="mode-option active" href="conversation.html" aria-current="page">對話引導</a>
+        </nav>
+        <a id="adminLink" class="admin-link" href="admin.html" hidden>管理中心</a>
+      </div>
     </header>
-    <nav class="mode-switch" aria-label="查詢模式">
-      <a class="mode-option" href="index.html?mode=faq">問答集模式</a>
-      <a class="mode-option active" href="conversation.html" aria-current="page">對話引導</a>
-    </nav>
     <section id="chat" class="chat" aria-live="polite"></section>
   </main>
 

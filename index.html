@@ -20,15 +20,15 @@
     .boot-dots i:nth-child(3) { animation-delay:.28s; }
     button,input { font:inherit; }
     main { width:min(100%,760px); min-height:100vh; margin:auto; padding:calc(18px + env(safe-area-inset-top)) 18px calc(110px + env(safe-area-inset-bottom)); }
-    header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:24px; padding-bottom:14px; border-bottom:1px solid rgba(217,232,225,.95); }
     .brand { font-size:18px; font-weight:800; }
-    .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+    .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
     .status { padding:7px 10px; border:1px solid #f0b8b0; border-radius:999px; background:#fff1ef; color:#a5392d; font-size:12px; }
     .status[hidden] { display:none; }
     .admin-link { display:inline-flex; align-items:center; min-height:38px; padding:0 12px; border-radius:10px; background:var(--ink); color:#fff; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 7px 18px rgba(24,48,42,.16); }
     .admin-link[hidden] { display:none; }
-    .mode-switch { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; width:min(calc(100% - 32px),320px); margin:0 auto 24px; padding:4px; border:1px solid var(--line); border-radius:14px; background:#e7f2ed; }
-    .mode-option { display:grid; place-items:center; min-height:42px; padding:8px 12px; border-radius:10px; color:var(--muted); font-size:13px; font-weight:800; text-align:center; text-decoration:none; }
+    .mode-switch { display:flex; align-items:center; gap:3px; width:max-content; padding:3px; border:1px solid var(--line); border-radius:12px; background:#e7f2ed; }
+    .mode-option { display:grid; place-items:center; min-height:32px; padding:6px 10px; border-radius:9px; color:var(--muted); font-size:12px; font-weight:800; white-space:nowrap; text-align:center; text-decoration:none; }
     .mode-option.active { background:#fff; color:var(--green-dark); box-shadow:0 3px 12px rgba(22,72,55,.10); }
     h1 { margin:0 0 8px; font-size:clamp(30px,8vw,42px); letter-spacing:-.04em; }
     .lead { margin:0 0 20px; color:var(--muted); line-height:1.65; }
@@ -72,7 +72,7 @@
     .no { border:1px solid var(--green); background:white; color:var(--green-dark); }
     .cancel { border:0; background:#f0f4f2; color:var(--muted); }
     @keyframes bootPulse { 0%,70%,100% { opacity:.35; transform:translateY(0); } 35% { opacity:1; transform:translateY(-2px); } }
-    @media (max-width:520px) { .header-actions { flex-wrap:wrap; } }
+    @media (max-width:420px) { header { align-items:flex-start; } .header-actions { width:100%; } }
     @media (min-width:620px) { main { padding-inline:28px; } .modal-backdrop { align-items:center; } }
   </style>
 </head>
@@ -88,15 +88,14 @@
   <header>
     <div class="brand">小幫手</div>
     <div class="header-actions">
+      <nav class="mode-switch" aria-label="查詢模式">
+        <a class="mode-option active" href="index.html?mode=faq" aria-current="page">問答集模式</a>
+        <a class="mode-option" href="conversation.html">對話引導</a>
+      </nav>
       <a id="adminLink" class="admin-link" href="admin.html" hidden>管理中心</a>
       <div id="status" class="status" role="alert" hidden></div>
     </div>
   </header>
-
-  <nav class="mode-switch" aria-label="查詢模式">
-    <a class="mode-option active" href="index.html?mode=faq" aria-current="page">問答集模式</a>
-    <a class="mode-option" href="conversation.html">對話引導</a>
-  </nav>
 
   <h1 id="greetingTitle">服務問題查詢</h1>
   <p class="lead">輸入問題或關鍵字，查看常見處置方式。查詢內容不會保存。</p>
