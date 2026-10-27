@@ -8,8 +8,8 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     :root {
-      --green:#06c755; --green-dark:#087a43; --ink:#18302a; --muted:#687970;
-      --line:#dce9e3; --wash:#f3faf7; --surface:#fff; --user:#dff7e9;
+      --green:#06c755; --green-dark:#05813a; --ink:#18302a; --muted:#61726b;
+      --line:#d9e8e1; --wash:#f3faf7; --surface:#fff; --user:#dff7e9;
       --shadow:0 12px 36px rgba(22,72,55,.09);
     }
     * { box-sizing:border-box; }
@@ -23,19 +23,20 @@
     .boot-dots i { width:7px; height:7px; border-radius:50%; background:#88a397; animation:pulse 1s infinite; }
     button { font:inherit; }
     .app { width:min(100%,760px); min-height:100vh; margin:auto; padding-bottom:calc(86px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,#f8fcfa 0%,var(--wash) 100%); }
-    .topbar { position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid rgba(220,233,227,.9); background:rgba(248,252,250,.93); backdrop-filter:blur(14px); }
-    .brand { display:flex; align-items:center; gap:10px; min-width:0; }
-    .avatar-logo { display:grid; place-items:center; width:42px; height:42px; border-radius:14px; background:linear-gradient(145deg,#0b9857,#056a3b); color:#fff; font-weight:900; box-shadow:0 8px 20px rgba(6,199,85,.22); }
-    .brand-title { font-weight:900; }
-    .brand-subtitle { margin-top:2px; color:var(--muted); font-size:12px; }
-    .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
-    .admin-link { display:inline-flex; align-items:center; min-height:38px; padding:0 12px; border-radius:10px; background:var(--ink); color:#fff; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 7px 18px rgba(24,48,42,.16); }
+    .topbar { position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid rgba(217,232,225,.95); background:rgba(248,252,250,.93); backdrop-filter:blur(14px); }
+    .brand { display:flex; align-items:center; gap:7px; min-width:0; }
+    .avatar-logo { display:grid; flex:0 0 auto; place-items:center; width:36px; height:36px; border-radius:12px; background:linear-gradient(145deg,#0b9857,#056a3b); color:#fff; font-size:14px; font-weight:900; box-shadow:0 7px 18px rgba(6,199,85,.20); }
+    .brand-title { font-size:15px; font-weight:900; white-space:nowrap; }
+    .header-actions { display:flex; flex:0 0 auto; align-items:center; justify-content:flex-end; gap:6px; min-width:0; }
+    .admin-link { display:inline-flex; align-items:center; min-height:36px; padding:0 9px; border-radius:10px; background:var(--ink); color:#fff; font-size:12px; font-weight:800; white-space:nowrap; text-decoration:none; box-shadow:0 7px 18px rgba(24,48,42,.16); }
     .admin-link[hidden] { display:none; }
-    .mode-switch { display:flex; align-items:center; gap:3px; width:max-content; padding:3px; border:1px solid var(--line); border-radius:12px; background:#e7f2ed; }
-    .mode-option { display:grid; place-items:center; min-height:32px; padding:6px 10px; border-radius:9px; color:var(--muted); font-size:12px; font-weight:800; white-space:nowrap; text-align:center; text-decoration:none; }
+    .mode-switch { display:flex; align-items:center; gap:2px; width:max-content; padding:2px; border:1px solid var(--line); border-radius:11px; background:#e7f2ed; }
+    .mode-option { display:grid; place-items:center; min-height:30px; padding:5px 7px; border-radius:8px; color:var(--muted); font-size:12px; font-weight:800; white-space:nowrap; text-align:center; text-decoration:none; }
     .mode-option.active { background:#fff; color:var(--green-dark); box-shadow:0 3px 12px rgba(22,72,55,.10); }
-    .chat { display:flex; flex-direction:column; gap:13px; min-height:calc(100vh - 154px); padding:20px 16px 34px; }
-    .chat > * { scroll-margin-top:130px; scroll-margin-bottom:84px; }
+    .status { margin:12px 16px 0; padding:8px 10px; border:1px solid #f0b8b0; border-radius:10px; background:#fff1ef; color:#a5392d; font-size:12px; }
+    .status[hidden] { display:none; }
+    .chat { display:flex; flex-direction:column; gap:13px; min-height:calc(100vh - 70px); padding:20px 16px 34px; }
+    .chat > * { scroll-margin-top:84px; scroll-margin-bottom:84px; }
     .row { display:flex; align-items:flex-end; gap:8px; animation:rise .2s ease-out; }
     .row.user { justify-content:flex-end; }
     .bot-avatar { flex:0 0 auto; display:grid; place-items:center; width:30px; height:30px; border-radius:10px; background:#0b8750; color:#fff; font-size:12px; font-weight:900; }
@@ -68,7 +69,7 @@
     @keyframes rise { from { opacity:0; transform:translateY(5px); } }
     @keyframes pulse { 0%,70%,100% { opacity:.35; transform:translateY(0); } 35% { opacity:1; transform:translateY(-2px); } }
     @keyframes cursorBlink { 0%,45% { opacity:1; } 46%,100% { opacity:0; } }
-    @media (max-width:560px) { .topbar { flex-wrap:wrap; } .header-actions { width:100%; } }
+    @media (max-width:360px) { .mode-suffix { display:none; } }
     @media (min-width:620px) { .chat { padding-inline:28px; } .modal-backdrop { align-items:center; } }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
   </style>
@@ -85,19 +86,17 @@
     <header class="topbar">
       <div class="brand">
         <div class="avatar-logo" aria-hidden="true">幫</div>
-        <div>
-          <div class="brand-title">小幫手</div>
-          <div id="connectionStatus" class="brand-subtitle">互動式服務查詢</div>
-        </div>
+        <div class="brand-title">小幫手</div>
       </div>
       <div class="header-actions">
         <nav class="mode-switch" aria-label="查詢模式">
-          <a class="mode-option" href="index.html?mode=faq">問答集模式</a>
+          <a class="mode-option" href="index.html?mode=faq">問答集<span class="mode-suffix">模式</span></a>
           <a class="mode-option active" href="conversation.html" aria-current="page">對話引導</a>
         </nav>
         <a id="adminLink" class="admin-link" href="admin.html" hidden>管理中心</a>
       </div>
     </header>
+    <div id="connectionStatus" class="status" role="alert" hidden></div>
     <section id="chat" class="chat" aria-live="polite"></section>
   </main>
 
@@ -539,6 +538,7 @@
         } catch (error) {
           console.warn(error);
           status.textContent="無法取得 LINE 暱稱";
+          status.hidden=false;
           bootScreen.classList.add("hidden");
           addMessage("bot","目前無法取得您的 LINE 暱稱，請關閉頁面後從 LINE 重新開啟。","answer");
           return;
