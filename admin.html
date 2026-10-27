@@ -274,7 +274,7 @@
                   <textarea id="dialogueLines" hidden></textarea>
                   <div id="dialogueEditor" class="visual-editor dialogue-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="隨機話術"></div>
                 </div>
-                <p class="placeholder-note">參數與文字樣式會直接呈現在編輯區，並套用於 LIFF 對話介面；下方預覽顯示第一句話術的實際效果。</p>
+                <p class="placeholder-note">參數與文字樣式會直接呈現在編輯區，並套用於 LIFF 對話介面；下方預覽會同步顯示目前游標所在話術的實際效果。</p>
                 <div id="dialogueCount" class="dialogue-count"></div>
                 <div class="simulator-grid">
                   <div class="simulator"><div class="simulator-title">LIFF 顯示預覽</div><div class="preview-row"><div class="preview-avatar">幫</div><div id="dialogueRichPreview" class="preview-bubble"></div></div></div>
@@ -427,15 +427,27 @@
     function editorToMarkup(editor) {
       return [...editor.childNodes].map(nodeToMarkup).join("").replace(/\n{3,}/g,"\n\n").replace(/\n+$/,"");
     }
-    function setEditorMarkup(editor,storage,text) {
+    function setEditorMarkup(editor,storage,text,{dialogue=false}={}) {
       storage.value=String(text || "");
-      editor.innerHTML=markupToEditorHtml(storage.value);
+      editor.innerHTML=dialogue
+        ? storage.value.split(/\r?\n/).map(line=>`<div class="dialogue-line" data-dialogue-line="true">${markupToEditorHtml(line) || "<br>"}</div>`).join("")
+        : markupToEditorHtml(storage.value);
     }
     function syncEditor(editor,storage) {
       storage.value=editorToMarkup(editor);
       return storage.value;
     }
-    function firstDialogueLine() {
+    function currentDialogueLine() {
+      const selection=window.getSelection();
+      if (selection?.rangeCount) {
+        const anchor=selection.anchorNode;
+        const element=anchor?.nodeType===Node.ELEMENT_NODE ? anchor : anchor?.parentElement;
+        const line=element?.closest?.("[data-dialogue-line], .dialogue-line, div");
+        if (line && line!==elements.dialogueEditor && elements.dialogueEditor.contains(line)) {
+          const markup=nodeToMarkup(line).replace(/\n+$/,"").trim();
+          if (markup) return markup;
+        }
+      }
       return (elements.dialogueLines.value || "").split(/\r?\n/).find(line=>line.trim()) || "在這裡預覽內容";
     }
     function updateNodePreview() {
@@ -445,7 +457,7 @@
     }
     function updateDialoguePreview() {
       syncEditor(elements.dialogueEditor,elements.dialogueLines);
-      const source=firstDialogueLine();
+      const source=currentDialogueLine();
       elements.dialogueRichPreview.innerHTML=richMarkupToHtml(source);
     }
     function insertEditorHtml(editor,html) {
@@ -763,7 +775,7 @@
     function fillDialogueStage() {
       const stage=elements.dialogueStage.value;
       const lines=state.content?.dialogue?.[stage] || [];
-      setEditorMarkup(elements.dialogueEditor,elements.dialogueLines,lines.join("\n"));
+      setEditorMarkup(elements.dialogueEditor,elements.dialogueLines,lines.join("\n"),{dialogue:true});
       elements.dialogueCount.textContent=`目前 ${lines.length} 種話術`;
       updateDialoguePreview();
     }
