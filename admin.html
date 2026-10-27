@@ -105,6 +105,28 @@
     .dialogue-controls { display:grid; grid-template-columns:minmax(180px,.4fr) minmax(0,1fr); gap:12px; align-items:start; }
     .placeholder-note { margin:8px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }
     .dialogue-count { margin-top:7px; color:var(--muted); font-size:12px; }
+    .rich-toolbar { display:flex; flex-wrap:wrap; gap:6px; padding:8px; border:1px solid var(--line); border-bottom:0; border-radius:11px 11px 0 0; background:#f3f6f9; }
+    .rich-toolbar + textarea { border-radius:0 0 12px 12px; }
+    .tool-button { min-height:31px; padding:0 9px; border:1px solid #cfd9e4; border-radius:8px; background:#fff; color:var(--navy-2); font-size:12px; font-weight:800; cursor:pointer; }
+    .tool-button.token { background:#eaf2fb; }
+    .tool-button.bold { font-weight:900; }
+    .tool-button.italic { font-style:italic; }
+    .tool-button.underline { text-decoration:underline; }
+    .tool-button.strike { text-decoration:line-through; }
+    .simulator-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:11px; }
+    .simulator { padding:12px; border:1px solid var(--line); border-radius:14px; background:#f3faf7; }
+    .simulator-title { margin-bottom:9px; color:var(--muted); font-size:11px; font-weight:800; }
+    .preview-row { display:flex; align-items:flex-end; gap:7px; }
+    .preview-avatar { display:grid; flex:0 0 auto; place-items:center; width:28px; height:28px; border-radius:9px; background:#0b8750; color:#fff; font-size:11px; font-weight:900; }
+    .preview-bubble { min-height:42px; padding:10px 12px; border:1px solid #d9e8e1; border-radius:15px 15px 15px 5px; background:#fff; color:#18302a; line-height:1.6; overflow-wrap:anywhere; }
+    .line-preview { min-height:70px; padding:10px 12px; border-radius:12px; background:#fff; color:#18302a; white-space:pre-wrap; line-height:1.6; }
+    .template-form { display:grid; grid-template-columns:minmax(160px,.4fr) minmax(0,1fr) auto; gap:9px; margin-bottom:14px; }
+    .template-list { display:grid; gap:9px; }
+    .template-card { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; padding:13px; border:1px solid var(--line); border-radius:14px; background:#fff; }
+    .template-name { font-weight:800; }
+    .template-description { margin-top:4px; color:var(--muted); font-size:12px; line-height:1.5; }
+    .template-time { margin-top:4px; color:var(--muted); font-size:11px; }
+    .template-buttons { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
     @media (max-width:680px) {
       .shell { padding-top:14px; }
       .topbar { align-items:flex-start; }
@@ -117,8 +139,9 @@
       .content-head,.node-row { align-items:stretch; grid-template-columns:1fr; }
       .content-head { display:grid; }
       .content-actions,.node-buttons { justify-content:flex-start; }
-      .form-grid,.dialogue-controls,.special-action { grid-template-columns:1fr; }
+      .form-grid,.dialogue-controls,.special-action,.simulator-grid,.template-form,.template-card { grid-template-columns:1fr; }
       .field.full { grid-column:auto; }
+      .template-buttons { justify-content:flex-start; }
     }
   </style>
 </head>
@@ -180,6 +203,7 @@
           <nav class="content-modes" aria-label="內容設定類型">
             <button class="content-mode active" type="button" data-content-mode="tree">問題與答案</button>
             <button class="content-mode" type="button" data-content-mode="dialogue">銜接對話</button>
+            <button class="content-mode" type="button" data-content-mode="templates">作業模板</button>
           </nav>
 
           <div id="treeView" class="content-view">
@@ -195,7 +219,24 @@
                 <label class="field full">顯示名稱<input id="nodeLabel" required maxlength="200" placeholder="例如：身分辨識"></label>
                 <label class="field">分類圖示（選填）<input id="nodeIcon" maxlength="20" placeholder="例如：◉"></label>
                 <label class="field">搜尋關鍵字（逗號分隔）<input id="nodeKeywords" placeholder="辨識失敗, 人臉, 偵測不到"></label>
-                <label id="nodeAnswerField" class="field full">答案<textarea id="nodeAnswer" maxlength="20000" placeholder="輸入完整處理方式"></textarea></label>
+                <div id="nodeAnswerField" class="field full">
+                  <span>答案</span>
+                  <div class="rich-toolbar" data-editor-target="nodeAnswer">
+                    <button class="tool-button token" type="button" data-token="{name}">使用者暱稱</button>
+                    <button class="tool-button token" type="button" data-token="{assistant}">小幫手名稱</button>
+                    <button class="tool-button token" type="button" data-token="{choice}">剛選擇項目</button>
+                    <button class="tool-button bold" type="button" data-format="b">粗體</button>
+                    <button class="tool-button italic" type="button" data-format="i">斜體</button>
+                    <button class="tool-button underline" type="button" data-format="u">底線</button>
+                    <button class="tool-button strike" type="button" data-format="s">刪除線</button>
+                    <button class="tool-button" type="button" data-token="[br]">換行</button>
+                  </div>
+                  <textarea id="nodeAnswer" maxlength="20000" placeholder="輸入完整處理方式"></textarea>
+                  <div class="simulator-grid">
+                    <div class="simulator"><div class="simulator-title">LIFF 對話顯示</div><div class="preview-row"><div class="preview-avatar">幫</div><div id="nodeRichPreview" class="preview-bubble"></div></div></div>
+                    <div class="simulator"><div class="simulator-title">送回 LINE 的純文字</div><div id="nodeLinePreview" class="line-preview"></div></div>
+                  </div>
+                </div>
                 <label class="checkbox-field full"><input id="nodeActive" type="checkbox" checked>在前台顯示此項目</label>
                 <div id="specialActionsField" class="field full">
                   <span>特殊功能（選填）</span>
@@ -214,12 +255,39 @@
             <div class="dialogue-controls">
               <label class="field">對話階段<select id="dialogueStage"></select></label>
               <div>
-                <label class="field">隨機話術（每行一種，至少 10 種）<textarea id="dialogueLines" rows="14"></textarea></label>
-                <p class="placeholder-note">可使用：<code>{name}</code> 使用者暱稱、<code>{assistant}</code> 小幫手名稱、<code>{choice}</code> 使用者剛選擇的項目。</p>
+                <div class="field">
+                  <span>隨機話術（每行一種，至少 10 種）</span>
+                  <div class="rich-toolbar" data-editor-target="dialogueLines">
+                    <button class="tool-button token" type="button" data-token="{name}">使用者暱稱</button>
+                    <button class="tool-button token" type="button" data-token="{assistant}">小幫手名稱</button>
+                    <button class="tool-button token" type="button" data-token="{choice}">剛選擇項目</button>
+                    <button class="tool-button bold" type="button" data-format="b">粗體</button>
+                    <button class="tool-button italic" type="button" data-format="i">斜體</button>
+                    <button class="tool-button underline" type="button" data-format="u">底線</button>
+                    <button class="tool-button strike" type="button" data-format="s">刪除線</button>
+                    <button class="tool-button" type="button" data-token="[br]">換行</button>
+                  </div>
+                  <textarea id="dialogueLines" rows="14"></textarea>
+                </div>
+                <p class="placeholder-note">參數按鈕會插入目前游標位置。文字樣式會顯示在 LIFF；一般 LINE 文字訊息不支援樣式，因此送回 LINE 時會轉為純文字。預覽顯示目前游標所在的那一句。</p>
                 <div id="dialogueCount" class="dialogue-count"></div>
+                <div class="simulator-grid">
+                  <div class="simulator"><div class="simulator-title">LIFF 對話模擬</div><div class="preview-row"><div class="preview-avatar">幫</div><div id="dialogueRichPreview" class="preview-bubble"></div></div></div>
+                  <div class="simulator"><div class="simulator-title">送回 LINE 的純文字</div><div id="dialogueLinePreview" class="line-preview"></div></div>
+                </div>
                 <div class="editor-actions"><button id="applyDialogueButton" class="button" type="button">套用這組話術</button></div>
               </div>
             </div>
+          </div>
+
+          <div id="templatesView" class="content-view" hidden>
+            <form id="templateForm" class="template-form">
+              <input id="templateName" required maxlength="100" placeholder="模板名稱，例如：116 年第一期">
+              <input id="templateDescription" maxlength="500" placeholder="用途或適用期間（選填）">
+              <button class="button" type="submit">儲存目前設定為模板</button>
+            </form>
+            <p class="placeholder-note">載入模板只會放進編輯區，不會立即影響前台；確認內容後仍需按上方「發布設定」。</p>
+            <div id="templateList" class="template-list"></div>
           </div>
         </section>
       </div>
@@ -273,6 +341,7 @@
       messages:[], nextBefore:null, idToken:null, loading:false,
       viewerUserId:null, admins:[], candidates:[], adminBusy:false, adminsLoaded:false,
       content:null, contentRevision:0, contentUpdatedAt:null, contentLoaded:false, contentBusy:false, contentDirty:false,
+      templates:[], templatesLoaded:false, templateBusy:false,
     };
     const elements = {
       tabs:[...document.querySelectorAll("[data-tab]")],
@@ -285,17 +354,77 @@
       adminList:document.querySelector("#adminList"), candidateList:document.querySelector("#candidateList"), manualForm:document.querySelector("#manualForm"),
       uid:document.querySelector("#uidInput"), name:document.querySelector("#nameInput"), candidateSearch:document.querySelector("#candidateSearch"),
       contentStatus:document.querySelector("#contentStatus"), contentDirty:document.querySelector("#contentDirty"), reloadContent:document.querySelector("#reloadContentButton"), publishContent:document.querySelector("#publishContentButton"),
-      contentModes:[...document.querySelectorAll("[data-content-mode]")], treeView:document.querySelector("#treeView"), dialogueView:document.querySelector("#dialogueView"),
+      contentModes:[...document.querySelectorAll("[data-content-mode]")], treeView:document.querySelector("#treeView"), dialogueView:document.querySelector("#dialogueView"), templatesView:document.querySelector("#templatesView"),
       nodeTree:document.querySelector("#nodeTree"), addRoot:document.querySelector("#addRootButton"), nodeForm:document.querySelector("#nodeForm"), nodeFormTitle:document.querySelector("#nodeFormTitle"),
       nodeId:document.querySelector("#nodeId"), nodeParent:document.querySelector("#nodeParent"), nodeType:document.querySelector("#nodeType"), nodeLabel:document.querySelector("#nodeLabel"), nodeIcon:document.querySelector("#nodeIcon"), nodeKeywords:document.querySelector("#nodeKeywords"), nodeAnswer:document.querySelector("#nodeAnswer"), nodeAnswerField:document.querySelector("#nodeAnswerField"), nodeActive:document.querySelector("#nodeActive"),
       specialActionsField:document.querySelector("#specialActionsField"), specialActions:document.querySelector("#specialActions"), addSpecialAction:document.querySelector("#addSpecialActionButton"), cancelNode:document.querySelector("#cancelNodeButton"),
       dialogueStage:document.querySelector("#dialogueStage"), dialogueLines:document.querySelector("#dialogueLines"), dialogueCount:document.querySelector("#dialogueCount"), applyDialogue:document.querySelector("#applyDialogueButton"),
+      nodeRichPreview:document.querySelector("#nodeRichPreview"), nodeLinePreview:document.querySelector("#nodeLinePreview"), dialogueRichPreview:document.querySelector("#dialogueRichPreview"), dialogueLinePreview:document.querySelector("#dialogueLinePreview"),
+      templateForm:document.querySelector("#templateForm"), templateName:document.querySelector("#templateName"), templateDescription:document.querySelector("#templateDescription"), templateList:document.querySelector("#templateList"),
     };
 
     function setStatus(element, message, error=false) {
       element.textContent = message;
       element.classList.toggle("error", error);
       element.hidden = !message;
+    }
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+    }
+    function applySampleTokens(text) {
+      return String(text || "")
+        .replace(/\{\s*name\s*\}/g,"王小明")
+        .replace(/\{\s*assistant\s*\}/g,"小幫手")
+        .replace(/\{\s*choice\s*\}/g,"身分辨識");
+    }
+    function stripRichMarkup(text) {
+      return String(text || "")
+        .replace(/\[br\]/gi,"\n")
+        .replace(/\[\/?(?:b|i|u|s)\]/gi,"");
+    }
+    function richMarkupToHtml(text) {
+      let html=escapeHtml(applySampleTokens(text));
+      html=html.replace(/\[br\]/gi,"<br>");
+      [["b","strong"],["i","em"],["u","u"],["s","s"]].forEach(([tag,element])=>{
+        const pattern=new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\/${tag}\\]`,"gi");
+        html=html.replace(pattern,`<${element}>$1</${element}>`);
+      });
+      return html.replace(/\r?\n/g,"<br>");
+    }
+    function currentTextareaLine(textarea) {
+      const value=textarea.value || "", cursor=textarea.selectionStart ?? 0;
+      const start=value.lastIndexOf("\n",Math.max(0,cursor-1))+1;
+      const foundEnd=value.indexOf("\n",cursor), end=foundEnd<0 ? value.length : foundEnd;
+      return value.slice(start,end).trim() || value.split(/\r?\n/).find(line=>line.trim()) || "在這裡預覽內容";
+    }
+    function updateNodePreview() {
+      const source=elements.nodeAnswer.value || "在這裡預覽答案內容";
+      elements.nodeRichPreview.innerHTML=richMarkupToHtml(source);
+      elements.nodeLinePreview.textContent=stripRichMarkup(applySampleTokens(source));
+    }
+    function updateDialoguePreview() {
+      const source=currentTextareaLine(elements.dialogueLines);
+      elements.dialogueRichPreview.innerHTML=richMarkupToHtml(source);
+      elements.dialogueLinePreview.textContent=stripRichMarkup(applySampleTokens(source));
+    }
+    function insertAtSelection(textarea,text) {
+      const start=textarea.selectionStart ?? textarea.value.length, end=textarea.selectionEnd ?? start;
+      textarea.setRangeText(text,start,end,"end"); textarea.focus();
+      textarea.dispatchEvent(new Event("input",{bubbles:true}));
+    }
+    function wrapSelection(textarea,tag) {
+      const start=textarea.selectionStart ?? 0, end=textarea.selectionEnd ?? start;
+      const selected=textarea.value.slice(start,end), sample=selected || "文字";
+      const replacement=`[${tag}]${sample}[/${tag}]`;
+      textarea.setRangeText(replacement,start,end,"end");
+      if (!selected) textarea.setSelectionRange(start+tag.length+2,start+tag.length+4);
+      textarea.focus(); textarea.dispatchEvent(new Event("input",{bubbles:true}));
+    }
+    function handleRichToolbar(event) {
+      const button=event.target.closest("button"); if (!button) return;
+      const toolbar=button.closest("[data-editor-target]"), textarea=document.querySelector(`#${toolbar?.dataset.editorTarget}`); if (!textarea) return;
+      if (button.dataset.format) wrapSelection(textarea,button.dataset.format);
+      else if (button.dataset.token) insertAtSelection(textarea,button.dataset.token);
     }
     function apiError(code) {
       return ({
@@ -309,6 +438,11 @@
         content_too_large:"設定內容過大，請精簡後再發布。",
         content_conflict:"設定已被其他管理員更新，請重新載入後再修改。",
         content_storage_unavailable:"尚未建立內容設定資料表，請先執行 D1 移轉檔。",
+        template_storage_unavailable:"尚未建立模板資料表，請先執行模板 D1 移轉檔。",
+        template_not_found:"找不到這份模板，可能已被刪除。",
+        invalid_template_content:"模板內容已損壞，請刪除後重新建立。",
+        invalid_template_name:"請輸入 100 字內的模板名稱。",
+        invalid_template_id:"模板編號不正確。",
       })[code] || "操作失敗，請稍後再試。";
     }
     async function api(path, options={}) {
@@ -527,7 +661,7 @@
       elements.nodeActive.checked=node?.active!==false;
       renderParentOptions(node ? located.parentId : parentId,node);
       (node?.actions || []).forEach(createSpecialActionRow);
-      syncNodeTypeFields(); elements.nodeForm.hidden=false;
+      syncNodeTypeFields(); updateNodePreview(); elements.nodeForm.hidden=false;
       elements.nodeForm.scrollIntoView({behavior:"smooth",block:"nearest"});
     }
     function closeNodeEditor() { elements.nodeForm.hidden=true; elements.specialActions.replaceChildren(); }
@@ -588,6 +722,7 @@
       const lines=state.content?.dialogue?.[stage] || [];
       elements.dialogueLines.value=lines.join("\n");
       elements.dialogueCount.textContent=`目前 ${lines.length} 種話術`;
+      updateDialoguePreview();
     }
     function applyDialogueStage() {
       const stage=elements.dialogueStage.value;
@@ -597,10 +732,70 @@
       elements.dialogueCount.textContent=`目前 ${lines.length} 種話術`;
       setContentDirty(); setStatus(elements.contentStatus,"話術已套用，請按「發布設定」才會更新前台。");
     }
+    function renderTemplates() {
+      elements.templateList.replaceChildren();
+      if (!state.templates.length) {
+        const empty=document.createElement("div"); empty.className="empty"; empty.textContent="目前尚未儲存作業模板。"; elements.templateList.appendChild(empty); return;
+      }
+      state.templates.forEach(template=>{
+        const card=document.createElement("article"); card.className="template-card";
+        const info=document.createElement("div");
+        const name=document.createElement("div"); name.className="template-name"; name.textContent=template.name;
+        const description=document.createElement("div"); description.className="template-description"; description.textContent=template.description || "未填寫說明";
+        const time=document.createElement("div"); time.className="template-time"; time.textContent=`建立時間：${String(template.created_at || "").replace("T"," ").replace("Z","")}`;
+        info.append(name,description,time);
+        const buttons=document.createElement("div"); buttons.className="template-buttons";
+        const load=document.createElement("button"); load.type="button"; load.className="mini-button"; load.textContent="載入編輯"; load.dataset.templateAction="load"; load.dataset.templateId=template.id;
+        const remove=document.createElement("button"); remove.type="button"; remove.className="mini-button danger"; remove.textContent="刪除"; remove.dataset.templateAction="delete"; remove.dataset.templateId=template.id;
+        buttons.append(load,remove); card.append(info,buttons); elements.templateList.appendChild(card);
+      });
+    }
+    async function loadTemplates() {
+      if (state.templateBusy) return;
+      state.templateBusy=true; setStatus(elements.contentStatus,"正在載入作業模板…");
+      try { const data=await api("/api/content/templates"); state.templates=data.items || []; state.templatesLoaded=true; renderTemplates(); setStatus(elements.contentStatus,""); }
+      catch (error) { setStatus(elements.contentStatus,error.message,true); }
+      finally { state.templateBusy=false; }
+    }
+    async function saveTemplate(event) {
+      event.preventDefault(); if (!state.content || state.templateBusy) return;
+      const name=elements.templateName.value.trim(), description=elements.templateDescription.value.trim();
+      if (!name) { setStatus(elements.contentStatus,"請輸入模板名稱。",true); return; }
+      state.templateBusy=true; setStatus(elements.contentStatus,"正在儲存模板…");
+      try {
+        await api("/api/content/templates",{method:"POST",body:JSON.stringify({name,description,config:state.content})});
+        elements.templateForm.reset(); state.templateBusy=false; await loadTemplates(); setStatus(elements.contentStatus,"模板已儲存，不會影響目前發布中的內容。");
+      } catch (error) { setStatus(elements.contentStatus,error.message,true); }
+      finally { state.templateBusy=false; }
+    }
+    async function loadTemplateForEditing(id) {
+      if (state.contentDirty && !confirm("載入模板會取代尚未發布的編輯內容，確定繼續嗎？")) return;
+      state.templateBusy=true; setStatus(elements.contentStatus,"正在載入模板內容…");
+      try {
+        const data=await api(`/api/content/templates/${id}`);
+        state.content=JSON.parse(JSON.stringify(data.template.config));
+        renderNodeTree(); fillDialogueStage(); closeNodeEditor(); setContentDirty(); showContentMode("tree");
+        setStatus(elements.contentStatus,`已載入模板「${data.template.name}」，確認後請按「發布設定」。`);
+      } catch (error) { setStatus(elements.contentStatus,error.message,true); }
+      finally { state.templateBusy=false; }
+    }
+    async function deleteTemplate(id) {
+      const template=state.templates.find(item=>Number(item.id)===Number(id));
+      if (!confirm(`確定刪除模板「${template?.name || id}」嗎？這不會影響已發布內容。`)) return;
+      state.templateBusy=true;
+      try { await api(`/api/content/templates/${id}`,{method:"DELETE"}); state.templateBusy=false; await loadTemplates(); }
+      catch (error) { state.templateBusy=false; setStatus(elements.contentStatus,error.message,true); }
+    }
+    function handleTemplateAction(event) {
+      const button=event.target.closest("[data-template-action]"); if (!button) return;
+      if (button.dataset.templateAction==="load") loadTemplateForEditing(button.dataset.templateId);
+      else deleteTemplate(button.dataset.templateId);
+    }
     function showContentMode(mode) {
       elements.contentModes.forEach(button=>button.classList.toggle("active",button.dataset.contentMode===mode));
-      elements.treeView.hidden=mode!=="tree"; elements.dialogueView.hidden=mode!=="dialogue";
+      elements.treeView.hidden=mode!=="tree"; elements.dialogueView.hidden=mode!=="dialogue"; elements.templatesView.hidden=mode!=="templates";
       if (mode==="dialogue") fillDialogueStage();
+      if (mode==="templates" && !state.templatesLoaded) loadTemplates();
     }
     async function loadContent() {
       if (state.contentBusy) return;
@@ -648,7 +843,10 @@
     elements.addRoot.addEventListener("click",()=>openNodeEditor()); elements.nodeTree.addEventListener("click",handleNodeAction);
     elements.nodeType.addEventListener("change",syncNodeTypeFields); elements.nodeForm.addEventListener("submit",applyNodeEditor); elements.cancelNode.addEventListener("click",closeNodeEditor);
     elements.addSpecialAction.addEventListener("click",()=>createSpecialActionRow());
-    elements.dialogueStage.addEventListener("change",fillDialogueStage); elements.dialogueLines.addEventListener("input",()=>{ const count=elements.dialogueLines.value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).length; elements.dialogueCount.textContent=`目前 ${count} 種話術（尚未套用）`; }); elements.applyDialogue.addEventListener("click",applyDialogueStage);
+    document.querySelectorAll(".rich-toolbar").forEach(toolbar=>toolbar.addEventListener("click",handleRichToolbar));
+    elements.nodeAnswer.addEventListener("input",updateNodePreview);
+    elements.dialogueStage.addEventListener("change",fillDialogueStage); elements.dialogueLines.addEventListener("input",()=>{ const count=elements.dialogueLines.value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).length; elements.dialogueCount.textContent=`目前 ${count} 種話術（尚未套用）`; updateDialoguePreview(); }); elements.dialogueLines.addEventListener("click",updateDialoguePreview); elements.dialogueLines.addEventListener("keyup",updateDialoguePreview); elements.applyDialogue.addEventListener("click",applyDialogueStage);
+    elements.templateForm.addEventListener("submit",saveTemplate); elements.templateList.addEventListener("click",handleTemplateAction);
     async function start() {
       if (LIFF_ID==="YOUR_LIFF_ID") { setStatus(elements.messageStatus,"請先將 admin.html 裡的 YOUR_LIFF_ID 改成目前使用的 LIFF ID。",true); return; }
       try {

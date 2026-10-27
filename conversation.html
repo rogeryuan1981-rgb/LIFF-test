@@ -404,7 +404,22 @@
 
     function formatTemplate(text, extra={}) {
       const values = { name:userDisplayName, assistant:ASSISTANT_NAME, ...extra };
-      return text.replace(/\{\s*(name|assistant|choice)\s*\}/g, (_, key) => values[key] ?? "");
+      return String(text || "").replace(/\{\s*(name|assistant|choice)\s*\}/g, (_, key) => values[key] ?? "");
+    }
+    function stripRichMarkup(text) {
+      return String(text || "")
+        .replace(/\[br\]/gi,"\n")
+        .replace(/\[\/?(?:b|i|u|s)\]/gi,"");
+    }
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, character=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[character]);
+    }
+    function richMarkupToHtml(text) {
+      let html=escapeHtml(text).replace(/\[br\]/gi,"<br>");
+      [["b","strong"],["i","em"],["u","u"],["s","s"]].forEach(([tag,element])=>{
+        html=html.replace(new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\/${tag}\\]`,"gi"),`<${element}>$1</${element}>`);
+      });
+      return html.replace(/\r?\n/g,"<br>");
     }
     function randomLine(key, extra={}) {
       const lines = dialogue[key];
@@ -422,15 +437,17 @@
     }
     function addUserMessage(text) { addMessage("user",text); }
     async function botSay(text,className="") {
+      const formattedText=formatTemplate(text,{choice:selectedPath.at(-1) || ""});
+      const plainText=stripRichMarkup(formattedText);
       const typing=document.createElement("div"); typing.className="row bot"; typing.innerHTML='<div class="bot-avatar">幫</div><div class="bubble typing"><i></i><i></i><i></i></div>'; chat.appendChild(typing); scrollToLatest();
-      const characters=Array.from(text);
+      const characters=Array.from(plainText);
       const thinkingDelay=Math.min(1100,360+characters.length*3)+Math.floor(Math.random()*260);
       await new Promise(resolve=>setTimeout(resolve,thinkingDelay));
       typing.remove();
 
       const row=document.createElement("div"); row.className="row bot";
       const avatar=document.createElement("div"); avatar.className="bot-avatar"; avatar.textContent="幫";
-      const bubble=document.createElement("div"); bubble.className=`bubble ${className} typing-text`.trim(); bubble.setAttribute("aria-label",text); bubble.title="點一下可立即顯示完整內容";
+      const bubble=document.createElement("div"); bubble.className=`bubble ${className} typing-text`.trim(); bubble.setAttribute("aria-label",plainText); bubble.title="點一下可立即顯示完整內容";
       row.append(avatar,bubble); chat.appendChild(row); scrollToLatest();
 
       const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -439,7 +456,7 @@
       if (reducedMotion) skipTyping=true;
 
       for (let index=0;index<characters.length;index+=1) {
-        if (skipTyping) { bubble.textContent=text; break; }
+        if (skipTyping) { bubble.textContent=plainText; break; }
         const character=characters[index];
         bubble.textContent+=character;
         if (index%7===0 || /[。！？：；，、\n]/.test(character)) scrollToLatest();
@@ -451,6 +468,7 @@
         else if (/\s/.test(character)) delay*=.45;
         await new Promise(resolve=>setTimeout(resolve,delay));
       }
+      bubble.innerHTML=richMarkupToHtml(formattedText);
       bubble.classList.remove("typing-text"); bubble.removeAttribute("title"); scrollToLatest();
     }
     function disableChoices(container,selectedButton) {
@@ -479,8 +497,9 @@
         else location.href=action.value;
         return;
       }
-      if (action.type==="line_message" && window.liff?.isInClient()) { await liff.sendMessages([{type:"text",text:action.value}]); return; }
-      if (navigator.clipboard) await navigator.clipboard.writeText(action.value);
+      const plainValue=stripRichMarkup(formatTemplate(action.value,{choice:selectedPath.at(-1) || ""}));
+      if (action.type==="line_message" && window.liff?.isInClient()) { await liff.sendMessages([{type:"text",text:plainValue}]); return; }
+      if (navigator.clipboard) await navigator.clipboard.writeText(plainValue);
       alert(action.type==="line_message" ? "訊息已複製，請貼到 LINE@ 對話。" : "內容已複製。");
     }
     function showSpecialActions(actions) {
@@ -541,7 +560,7 @@
     function openFeedback() { modal.classList.add("show"); }
     async function returnToLine(result) {
       const resolved=result==="resolved";
-      const responseText=randomLine(resolved ? "resolved" : "unresolved");
+      const responseText=stripRichMarkup(randomLine(resolved ? "resolved" : "unresolved"));
       const pathText=selectedPath.length ? selectedPath.join(" ＞ ") : "尚未選擇問題";
       const message=`${resolved ? "✅ 已獲得解答" : "❓ 需要客服協助"}\n${responseText}\n查詢路徑：${pathText}`;
       try {
