@@ -120,6 +120,8 @@
     const ASSISTANT_NAME = "小幫手";
     const SESSION_KEY = "helper-liff-session-v3";
     const SESSION_TTL = 15 * 60 * 1000;
+    const CONTENT_CACHE_KEY = "helper-content-cache-v1";
+    const CONTENT_CACHE_TTL = 5 * 60 * 1000;
 
     function readSessionCache() {
       try {
@@ -145,7 +147,7 @@
     }
 
     // 樹狀資料可支援任意層數；未來設定介面可直接管理這個結構。
-    const knowledgeTree = [
+    let knowledgeTree = [
       {
         label:"身分辨識",
         children:[
@@ -241,7 +243,7 @@
     ];
 
     // 每個對話階段至少 10 種話術；{name}、{assistant}、{choice} 會動態替換。
-    const dialogue = {
+    let dialogue = {
       greetings:[
         "{name}您好，我是{assistant}，今天有什麼可以協助您的嗎？",
         "{name}您好，很高興為您服務。我是{assistant}，請告訴我您想了解的問題。",
@@ -364,6 +366,32 @@
       ]
     };
 
+    function readContentCache() {
+      try {
+        const cached=JSON.parse(localStorage.getItem(CONTENT_CACHE_KEY) || "null");
+        return cached?.expiresAt>Date.now() ? cached.config : null;
+      } catch { return null; }
+    }
+    function writeContentCache(config) {
+      try { localStorage.setItem(CONTENT_CACHE_KEY,JSON.stringify({config,expiresAt:Date.now()+CONTENT_CACHE_TTL})); } catch {}
+    }
+    async function loadContentConfiguration() {
+      let config=readContentCache();
+      if (!config) {
+        try {
+          const response=await fetch(`${API_BASE}/api/content`);
+          const data=await response.json().catch(()=>({}));
+          if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+          config=data.config; if (config) writeContentCache(config);
+        } catch (error) { console.warn("無法載入後台內容設定，暫時使用內建題庫。",error); }
+      }
+      if (Array.isArray(config?.tree) && config.tree.length) knowledgeTree=config.tree;
+      if (config?.dialogue && typeof config.dialogue==="object") {
+        const configured=Object.fromEntries(Object.entries(config.dialogue).filter(([,lines])=>Array.isArray(lines) && lines.length));
+        dialogue={...dialogue,...configured};
+      }
+    }
+
     const chat = document.querySelector("#chat");
     const modal = document.querySelector("#feedbackModal");
     const status = document.querySelector("#connectionStatus");
@@ -444,12 +472,42 @@
       }
       chat.appendChild(container); scrollToLatest();
     }
+    async function performSpecialAction(action) {
+      if (action.type==="phone") { location.href=`tel:${String(action.value).replace(/[^+\d#*,;]/g,"")}`; return; }
+      if (action.type==="url") {
+        if (window.liff?.isInClient()) await liff.openWindow({url:action.value,external:true});
+        else location.href=action.value;
+        return;
+      }
+      if (action.type==="line_message" && window.liff?.isInClient()) { await liff.sendMessages([{type:"text",text:action.value}]); return; }
+      if (navigator.clipboard) await navigator.clipboard.writeText(action.value);
+      alert(action.type==="line_message" ? "訊息已複製，請貼到 LINE@ 對話。" : "內容已複製。");
+    }
+    function showSpecialActions(actions) {
+      if (!Array.isArray(actions) || !actions.length) return;
+      const container=document.createElement("div"); container.className="choices";
+      actions.forEach(action=>{
+        const button=document.createElement("button"); button.type="button"; button.className="choice"; button.textContent=action.label;
+        button.addEventListener("click",async()=>{ try { await performSpecialAction(action); } catch (error) { console.error(error); alert("目前無法執行這項功能，請稍後再試。"); } });
+        container.appendChild(button);
+      });
+      chat.appendChild(container); scrollToLatest();
+    }
     function nodesAtPath(path) {
       let nodes=knowledgeTree;
       for (const label of path) { const node=nodes.find(item=>item.label===label); nodes=node?.children || []; }
       return nodes;
     }
     async function presentLevel(nodes,path=[]) {
+      nodes=(nodes || []).filter(node=>node.active!==false);
+      if (!nodes.length) {
+        await botSay("這個分類目前沒有可顯示的內容，請返回上一層選擇其他項目。","answer");
+        if (path.length) showChoices([{label:"返回上一層",action:"back"}],async()=>{
+          const parentPath=path.slice(0,-1); selectedPath=parentPath;
+          await botSay(randomLine("back")); await presentLevel(nodesAtPath(parentPath),parentPath);
+        });
+        return;
+      }
       await botSay(path.length ? randomLine("nextPrompts") : randomLine("categoryPrompts"));
       showChoices(nodes,async(node)=>{
         selectedPath=[...path,node.label];
@@ -457,6 +515,7 @@
         if (node.answer) {
           await botSay(randomLine("answerIntroductions"));
           await botSay(node.answer,"answer");
+          showSpecialActions(node.actions);
           await botSay(randomLine("afterAnswer"));
           showChoices([{label:"查詢其他問題",action:"restart"},{label:"結束查詢",action:"finish"}],async(action)=>{
             if (action.action==="restart") { await botSay(randomLine("restart")); selectedPath=[]; await presentLevel(knowledgeTree,[]); }
@@ -517,6 +576,7 @@
       }
     }
     async function initialize() {
+      const contentPromise=loadContentConfiguration();
       if (LIFF_ID!=="YOUR_LIFF_ID" && window.liff) {
         try {
           await liff.init({liffId:LIFF_ID});
@@ -546,6 +606,7 @@
       } else {
         userDisplayName="測試使用者";
       }
+      await contentPromise;
       bootScreen.classList.add("hidden");
       await startConversation();
     }

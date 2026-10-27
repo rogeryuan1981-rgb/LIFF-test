@@ -14,7 +14,7 @@
     }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei",sans-serif; }
-    button,input,select { font:inherit; }
+    button,input,select,textarea { font:inherit; }
     .shell { width:min(960px,100%); margin:auto; padding:20px 16px 48px; }
     .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
     .brand { display:flex; align-items:center; gap:11px; }
@@ -33,8 +33,9 @@
     .tab-panel[hidden] { display:none; }
     .panel { border:1px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:var(--shadow); }
     .toolbar { display:grid; grid-template-columns:minmax(0,1fr) 130px minmax(180px,.55fr) auto; gap:10px; padding:14px; margin-bottom:14px; }
-    input,select { width:100%; min-height:44px; padding:0 13px; border:1px solid var(--line); border-radius:12px; background:#fff; color:var(--ink); outline:none; }
-    input:focus,select:focus { border-color:#7ba3cf; box-shadow:0 0 0 3px rgba(29,59,97,.10); }
+    input,select,textarea { width:100%; min-height:44px; padding:0 13px; border:1px solid var(--line); border-radius:12px; background:#fff; color:var(--ink); outline:none; }
+    textarea { min-height:116px; padding-block:11px; resize:vertical; line-height:1.55; }
+    input:focus,select:focus,textarea:focus { border-color:#7ba3cf; box-shadow:0 0 0 3px rgba(29,59,97,.10); }
     .button { min-height:42px; padding:0 14px; border:0; border-radius:11px; background:var(--navy); color:#fff; font-weight:700; cursor:pointer; }
     .button.secondary { border:1px solid var(--line); background:#fff; color:var(--navy-2); }
     .button.danger { border:1px solid #f0b9b3; background:#fff; color:var(--danger); }
@@ -68,6 +69,42 @@
     .uid { margin-top:3px; color:var(--muted); font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:11px; overflow-wrap:anywhere; }
     .self { display:inline-block; margin-left:6px; padding:2px 6px; border-radius:999px; background:#e8f9ef; color:#08783a; font-size:11px; }
     .candidate-search { margin-bottom:10px; }
+    .content-shell { display:grid; gap:14px; }
+    .content-panel { padding:16px; }
+    .content-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .content-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .dirty { display:inline-flex; align-items:center; min-height:28px; padding:0 9px; border-radius:999px; background:#fff4df; color:#8a5714; font-size:12px; font-weight:800; }
+    .dirty[hidden] { display:none; }
+    .content-modes { display:flex; gap:4px; width:max-content; margin-bottom:14px; padding:4px; border:1px solid var(--line); border-radius:12px; background:#eef2f6; }
+    .content-mode { min-height:36px; padding:0 12px; border:0; border-radius:9px; background:transparent; color:var(--muted); font-weight:800; cursor:pointer; }
+    .content-mode.active { background:#fff; color:var(--navy); box-shadow:0 3px 10px rgba(19,38,63,.09); }
+    .content-view[hidden] { display:none; }
+    .tree-toolbar { display:flex; justify-content:flex-end; margin-bottom:10px; }
+    .node-tree { display:grid; gap:7px; }
+    .node-row { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; min-height:54px; padding:9px 10px 9px calc(10px + var(--depth,0) * 18px); border:1px solid var(--line); border-radius:13px; background:#fff; }
+    .node-main { min-width:0; }
+    .node-label { font-weight:800; overflow-wrap:anywhere; }
+    .node-meta { display:flex; align-items:center; gap:6px; margin-top:4px; color:var(--muted); font-size:11px; }
+    .node-kind { padding:2px 6px; border-radius:999px; background:#eaf2fb; color:var(--navy-2); font-weight:800; }
+    .node-kind.answer { background:#e8f9ef; color:#08783a; }
+    .node-off { color:var(--danger); font-weight:800; }
+    .node-buttons { display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:flex-end; }
+    .mini-button { min-height:32px; padding:0 9px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--navy-2); font-size:12px; font-weight:800; cursor:pointer; }
+    .mini-button.danger { color:var(--danger); }
+    .editor { margin-top:14px; padding:15px; border:1px solid #b9c9db; border-radius:16px; background:#f8fbff; }
+    .editor[hidden] { display:none; }
+    .editor h3 { margin:0 0 12px; font-size:16px; }
+    .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .field { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:700; }
+    .field.full { grid-column:1 / -1; }
+    .checkbox-field { display:flex; align-items:center; gap:8px; min-height:44px; color:var(--ink); font-size:14px; }
+    .checkbox-field input { width:18px; min-height:18px; margin:0; }
+    .editor-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:13px; }
+    .special-actions { display:grid; gap:8px; }
+    .special-action { display:grid; grid-template-columns:130px minmax(130px,.65fr) minmax(0,1fr) auto; gap:7px; align-items:center; }
+    .dialogue-controls { display:grid; grid-template-columns:minmax(180px,.4fr) minmax(0,1fr); gap:12px; align-items:start; }
+    .placeholder-note { margin:8px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }
+    .dialogue-count { margin-top:7px; color:var(--muted); font-size:12px; }
     @media (max-width:680px) {
       .shell { padding-top:14px; }
       .topbar { align-items:flex-start; }
@@ -77,6 +114,11 @@
       time { display:block; margin-top:4px; }
       .person { grid-template-columns:40px minmax(0,1fr); }
       .person .button { grid-column:1 / -1; }
+      .content-head,.node-row { align-items:stretch; grid-template-columns:1fr; }
+      .content-head { display:grid; }
+      .content-actions,.node-buttons { justify-content:flex-start; }
+      .form-grid,.dialogue-controls,.special-action { grid-template-columns:1fr; }
+      .field.full { grid-column:auto; }
     }
   </style>
 </head>
@@ -98,6 +140,7 @@
 
     <nav class="tabs" aria-label="管理中心分頁">
       <button class="tab active" type="button" data-tab="messages">對話紀錄</button>
+      <button class="tab" type="button" data-tab="content">內容設定</button>
       <button class="tab" type="button" data-tab="permissions">管理員權限</button>
     </nav>
 
@@ -116,6 +159,70 @@
       <p id="messageCount" class="count-line" hidden></p>
       <section id="messageList" class="panel message-list" aria-live="polite"></section>
       <div class="footer-actions"><button id="loadMoreButton" class="button" type="button" hidden>載入更多</button></div>
+    </section>
+
+    <section id="contentPanel" class="tab-panel" hidden>
+      <p id="contentStatus" class="status" hidden></p>
+      <div class="content-shell">
+        <section class="panel content-panel">
+          <div class="content-head">
+            <div>
+              <h2>服務查詢內容</h2>
+              <div class="hint">同一套設定會同時供問答集與對話引導使用。請先套用編輯，再按「發布設定」。</div>
+            </div>
+            <div class="content-actions">
+              <span id="contentDirty" class="dirty" hidden>尚未發布</span>
+              <button id="reloadContentButton" class="button secondary" type="button">重新載入</button>
+              <button id="publishContentButton" class="button" type="button">發布設定</button>
+            </div>
+          </div>
+
+          <nav class="content-modes" aria-label="內容設定類型">
+            <button class="content-mode active" type="button" data-content-mode="tree">問題與答案</button>
+            <button class="content-mode" type="button" data-content-mode="dialogue">銜接對話</button>
+          </nav>
+
+          <div id="treeView" class="content-view">
+            <div class="tree-toolbar"><button id="addRootButton" class="button secondary" type="button">新增最上層分類</button></div>
+            <div id="nodeTree" class="node-tree"></div>
+
+            <form id="nodeForm" class="editor" hidden>
+              <h3 id="nodeFormTitle">新增內容</h3>
+              <input id="nodeId" type="hidden">
+              <div class="form-grid">
+                <label class="field">上層位置<select id="nodeParent"></select></label>
+                <label class="field">內容類型<select id="nodeType"><option value="branch">分類／引導選項</option><option value="answer">問題與答案</option></select></label>
+                <label class="field full">顯示名稱<input id="nodeLabel" required maxlength="200" placeholder="例如：身分辨識"></label>
+                <label class="field">分類圖示（選填）<input id="nodeIcon" maxlength="20" placeholder="例如：◉"></label>
+                <label class="field">搜尋關鍵字（逗號分隔）<input id="nodeKeywords" placeholder="辨識失敗, 人臉, 偵測不到"></label>
+                <label id="nodeAnswerField" class="field full">答案<textarea id="nodeAnswer" maxlength="20000" placeholder="輸入完整處理方式"></textarea></label>
+                <label class="checkbox-field full"><input id="nodeActive" type="checkbox" checked>在前台顯示此項目</label>
+                <div id="specialActionsField" class="field full">
+                  <span>特殊功能（選填）</span>
+                  <div id="specialActions" class="special-actions"></div>
+                  <button id="addSpecialActionButton" class="button secondary" type="button">新增電話、網址或其他功能</button>
+                </div>
+              </div>
+              <div class="editor-actions">
+                <button id="cancelNodeButton" class="button secondary" type="button">取消</button>
+                <button class="button" type="submit">套用變更</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="dialogueView" class="content-view" hidden>
+            <div class="dialogue-controls">
+              <label class="field">對話階段<select id="dialogueStage"></select></label>
+              <div>
+                <label class="field">隨機話術（每行一種，至少 10 種）<textarea id="dialogueLines" rows="14"></textarea></label>
+                <p class="placeholder-note">可使用：<code>{name}</code> 使用者暱稱、<code>{assistant}</code> 小幫手名稱、<code>{choice}</code> 使用者剛選擇的項目。</p>
+                <div id="dialogueCount" class="dialogue-count"></div>
+                <div class="editor-actions"><button id="applyDialogueButton" class="button" type="button">套用這組話術</button></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </section>
 
     <section id="permissionsPanel" class="tab-panel" hidden>
@@ -150,13 +257,26 @@
   <script>
     const LIFF_ID = "2011870813-C7Krkv36";
     const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
+    const DIALOGUE_STAGES = {
+      greetings:"開場問候",
+      categoryPrompts:"開始選擇大分類",
+      acknowledgements:"確認使用者選擇",
+      nextPrompts:"引導下一層",
+      answerIntroductions:"提供答案前",
+      afterAnswer:"提供答案後",
+      restart:"重新查詢",
+      back:"返回上一層",
+      resolved:"已獲得解答",
+      unresolved:"需要客服協助",
+    };
     const state = {
       messages:[], nextBefore:null, idToken:null, loading:false,
       viewerUserId:null, admins:[], candidates:[], adminBusy:false, adminsLoaded:false,
+      content:null, contentRevision:0, contentUpdatedAt:null, contentLoaded:false, contentBusy:false, contentDirty:false,
     };
     const elements = {
       tabs:[...document.querySelectorAll("[data-tab]")],
-      messagesPanel:document.querySelector("#messagesPanel"), permissionsPanel:document.querySelector("#permissionsPanel"),
+      messagesPanel:document.querySelector("#messagesPanel"), contentPanel:document.querySelector("#contentPanel"), permissionsPanel:document.querySelector("#permissionsPanel"),
       viewer:document.querySelector("#viewer"), viewerName:document.querySelector("#viewerName"), viewerImage:document.querySelector("#viewerImage"),
       messageStatus:document.querySelector("#messageStatus"), messageCount:document.querySelector("#messageCount"), messageList:document.querySelector("#messageList"),
       search:document.querySelector("#searchInput"), type:document.querySelector("#typeFilter"), conversation:document.querySelector("#conversationFilter"),
@@ -164,6 +284,12 @@
       permissionStatus:document.querySelector("#permissionStatus"), adminCount:document.querySelector("#adminCount"), candidateCount:document.querySelector("#candidateCount"),
       adminList:document.querySelector("#adminList"), candidateList:document.querySelector("#candidateList"), manualForm:document.querySelector("#manualForm"),
       uid:document.querySelector("#uidInput"), name:document.querySelector("#nameInput"), candidateSearch:document.querySelector("#candidateSearch"),
+      contentStatus:document.querySelector("#contentStatus"), contentDirty:document.querySelector("#contentDirty"), reloadContent:document.querySelector("#reloadContentButton"), publishContent:document.querySelector("#publishContentButton"),
+      contentModes:[...document.querySelectorAll("[data-content-mode]")], treeView:document.querySelector("#treeView"), dialogueView:document.querySelector("#dialogueView"),
+      nodeTree:document.querySelector("#nodeTree"), addRoot:document.querySelector("#addRootButton"), nodeForm:document.querySelector("#nodeForm"), nodeFormTitle:document.querySelector("#nodeFormTitle"),
+      nodeId:document.querySelector("#nodeId"), nodeParent:document.querySelector("#nodeParent"), nodeType:document.querySelector("#nodeType"), nodeLabel:document.querySelector("#nodeLabel"), nodeIcon:document.querySelector("#nodeIcon"), nodeKeywords:document.querySelector("#nodeKeywords"), nodeAnswer:document.querySelector("#nodeAnswer"), nodeAnswerField:document.querySelector("#nodeAnswerField"), nodeActive:document.querySelector("#nodeActive"),
+      specialActionsField:document.querySelector("#specialActionsField"), specialActions:document.querySelector("#specialActions"), addSpecialAction:document.querySelector("#addSpecialActionButton"), cancelNode:document.querySelector("#cancelNodeButton"),
+      dialogueStage:document.querySelector("#dialogueStage"), dialogueLines:document.querySelector("#dialogueLines"), dialogueCount:document.querySelector("#dialogueCount"), applyDialogue:document.querySelector("#applyDialogueButton"),
     };
 
     function setStatus(element, message, error=false) {
@@ -179,6 +305,10 @@
         self_removal_not_allowed:"不能移除目前登入的管理員帳號。",
         last_admin:"不能移除最後一位管理員。",
         admin_not_found:"找不到這位管理員。",
+        invalid_content:"內容格式不正確，請檢查必填欄位。",
+        content_too_large:"設定內容過大，請精簡後再發布。",
+        content_conflict:"設定已被其他管理員更新，請重新載入後再修改。",
+        content_storage_unavailable:"尚未建立內容設定資料表，請先執行 D1 移轉檔。",
       })[code] || "操作失敗，請稍後再試。";
     }
     async function api(path, options={}) {
@@ -293,15 +423,232 @@
       catch (error) { setStatus(elements.permissionStatus,error.message,true); }
       finally { state.adminBusy=false; renderAdmins(); }
     }
+
+    function walkNodes(nodes, callback, depth=0, parentId=null) {
+      (nodes || []).forEach((node,index)=>{
+        callback(node,{depth,parentId,nodes,index});
+        walkNodes(node.children || [],callback,depth+1,node.id);
+      });
+    }
+    function locateNode(id,nodes=state.content?.tree || [],parentId=null) {
+      for (let index=0;index<nodes.length;index+=1) {
+        const node=nodes[index];
+        if (node.id===id) return {node,nodes,index,parentId};
+        const found=locateNode(id,node.children || [],node.id);
+        if (found) return found;
+      }
+      return null;
+    }
+    function descendantIds(node) {
+      const ids=new Set([node.id]);
+      walkNodes(node.children || [],child=>ids.add(child.id));
+      return ids;
+    }
+    function setContentDirty(dirty=true) {
+      state.contentDirty=dirty;
+      elements.contentDirty.hidden=!dirty;
+      elements.publishContent.disabled=state.contentBusy || !dirty;
+    }
+    function makeMiniButton(label,operation,id,danger=false) {
+      const button=document.createElement("button");
+      button.type="button"; button.className=`mini-button${danger ? " danger" : ""}`; button.textContent=label;
+      button.dataset.nodeAction=operation; button.dataset.nodeId=id;
+      return button;
+    }
+    function renderNodeTree() {
+      elements.nodeTree.replaceChildren();
+      const tree=state.content?.tree || [];
+      if (!tree.length) {
+        const empty=document.createElement("div"); empty.className="empty"; empty.textContent="目前尚未建立問題分類。"; elements.nodeTree.appendChild(empty); return;
+      }
+      walkNodes(tree,(node,{depth,index,nodes})=>{
+        const row=document.createElement("div"); row.className="node-row"; row.style.setProperty("--depth",Math.min(depth,8));
+        const main=document.createElement("div"); main.className="node-main";
+        const label=document.createElement("div"); label.className="node-label"; label.textContent=`${node.icon ? `${node.icon} ` : ""}${node.label}`;
+        const meta=document.createElement("div"); meta.className="node-meta";
+        const kind=document.createElement("span"); kind.className=`node-kind ${node.type}`; kind.textContent=node.type==="answer" ? "問題／答案" : `分類・${(node.children || []).length} 項`;
+        meta.appendChild(kind);
+        if (node.active===false) { const off=document.createElement("span"); off.className="node-off"; off.textContent="未顯示"; meta.appendChild(off); }
+        main.append(label,meta);
+        const buttons=document.createElement("div"); buttons.className="node-buttons";
+        buttons.appendChild(makeMiniButton("編輯","edit",node.id));
+        if (node.type==="branch") buttons.appendChild(makeMiniButton("新增下層","add",node.id));
+        const up=makeMiniButton("↑","up",node.id); up.disabled=index===0;
+        const down=makeMiniButton("↓","down",node.id); down.disabled=index===nodes.length-1;
+        buttons.append(up,down,makeMiniButton("刪除","delete",node.id,true));
+        row.append(main,buttons); elements.nodeTree.appendChild(row);
+      });
+    }
+    function renderParentOptions(selectedParentId="",editingNode=null) {
+      elements.nodeParent.replaceChildren();
+      const root=document.createElement("option"); root.value=""; root.textContent="最上層"; elements.nodeParent.appendChild(root);
+      const excluded=editingNode ? descendantIds(editingNode) : new Set();
+      walkNodes(state.content?.tree || [],(node,{depth})=>{
+        if (node.type!=="branch" || excluded.has(node.id)) return;
+        const option=document.createElement("option"); option.value=node.id; option.textContent=`${"　".repeat(depth)}${node.label}`; elements.nodeParent.appendChild(option);
+      });
+      elements.nodeParent.value=selectedParentId || "";
+    }
+    function createSpecialActionRow(action={type:"phone",label:"",value:""}) {
+      const row=document.createElement("div"); row.className="special-action";
+      const type=document.createElement("select"); type.className="special-action-type";
+      [["phone","撥打電話"],["url","開啟網址"],["line_message","傳送 LINE 訊息"],["copy","複製文字"]].forEach(([value,label])=>{ const option=document.createElement("option"); option.value=value; option.textContent=label; type.appendChild(option); });
+      type.value=action.type || "phone";
+      const label=document.createElement("input"); label.className="special-action-label"; label.placeholder="按鈕文字"; label.value=action.label || "";
+      const value=document.createElement("input"); value.className="special-action-value"; value.placeholder="電話、網址或訊息內容"; value.value=action.value || "";
+      const remove=document.createElement("button"); remove.type="button"; remove.className="mini-button danger"; remove.textContent="移除"; remove.addEventListener("click",()=>row.remove());
+      row.append(type,label,value,remove); elements.specialActions.appendChild(row);
+    }
+    function collectSpecialActions() {
+      return [...elements.specialActions.querySelectorAll(".special-action")].map(row=>({
+        type:row.querySelector(".special-action-type").value,
+        label:row.querySelector(".special-action-label").value.trim(),
+        value:row.querySelector(".special-action-value").value.trim(),
+      })).filter(action=>action.label && action.value);
+    }
+    function syncNodeTypeFields() {
+      const isAnswer=elements.nodeType.value==="answer";
+      elements.nodeAnswerField.hidden=!isAnswer;
+      elements.specialActionsField.hidden=!isAnswer;
+      elements.nodeAnswer.required=isAnswer;
+    }
+    function openNodeEditor(nodeId="",parentId="") {
+      const located=nodeId ? locateNode(nodeId) : null;
+      const node=located?.node || null;
+      elements.nodeForm.reset(); elements.specialActions.replaceChildren();
+      elements.nodeId.value=node?.id || "";
+      elements.nodeForm.dataset.originalParent=located?.parentId || "";
+      elements.nodeFormTitle.textContent=node ? `編輯：${node.label}` : "新增內容";
+      elements.nodeType.value=node?.type || "branch";
+      elements.nodeLabel.value=node?.label || "";
+      elements.nodeIcon.value=node?.icon || "";
+      elements.nodeKeywords.value=(node?.keywords || []).join(", ");
+      elements.nodeAnswer.value=node?.answer || "";
+      elements.nodeActive.checked=node?.active!==false;
+      renderParentOptions(node ? located.parentId : parentId,node);
+      (node?.actions || []).forEach(createSpecialActionRow);
+      syncNodeTypeFields(); elements.nodeForm.hidden=false;
+      elements.nodeForm.scrollIntoView({behavior:"smooth",block:"nearest"});
+    }
+    function closeNodeEditor() { elements.nodeForm.hidden=true; elements.specialActions.replaceChildren(); }
+    function targetChildren(parentId) {
+      if (!parentId) return state.content.tree;
+      const parent=locateNode(parentId)?.node;
+      return parent?.type==="branch" ? parent.children || (parent.children=[]) : null;
+    }
+    function applyNodeEditor(event) {
+      event.preventDefault();
+      const id=elements.nodeId.value;
+      const existing=id ? locateNode(id) : null;
+      const type=elements.nodeType.value;
+      if (existing?.node.children?.length && type==="answer") {
+        setStatus(elements.contentStatus,"含有下層項目的分類不能直接改成答案，請先移動或刪除下層內容。",true); return;
+      }
+      const parentId=elements.nodeParent.value;
+      const destination=targetChildren(parentId);
+      if (!destination) { setStatus(elements.contentStatus,"找不到指定的上層分類。",true); return; }
+      const node={
+        id:id || `node-${Date.now()}-${crypto.randomUUID().slice(0,8)}`,
+        type,
+        label:elements.nodeLabel.value.trim(),
+        icon:elements.nodeIcon.value.trim(),
+        keywords:elements.nodeKeywords.value.split(/[,，]/).map(item=>item.trim()).filter(Boolean),
+        answer:type==="answer" ? elements.nodeAnswer.value.trim() : "",
+        actions:type==="answer" ? collectSpecialActions() : [],
+        active:elements.nodeActive.checked,
+        children:type==="branch" ? (existing?.node.children || []) : [],
+      };
+      if (!node.label || (type==="answer" && !node.answer)) {
+        setStatus(elements.contentStatus,"請填寫顯示名稱與答案。",true); return;
+      }
+      if (existing) existing.nodes.splice(existing.index,1);
+      const currentDestination=targetChildren(parentId);
+      if (!currentDestination) { setStatus(elements.contentStatus,"無法移動到指定分類。",true); return; }
+      if (existing && existing.parentId===parentId) currentDestination.splice(Math.min(existing.index,currentDestination.length),0,node);
+      else currentDestination.push(node);
+      closeNodeEditor(); renderNodeTree(); setContentDirty(); setStatus(elements.contentStatus,"變更已套用，請按「發布設定」才會更新前台。");
+    }
+    function handleNodeAction(event) {
+      const button=event.target.closest("[data-node-action]"); if (!button || button.disabled) return;
+      const id=button.dataset.nodeId, operation=button.dataset.nodeAction, located=locateNode(id); if (!located) return;
+      if (operation==="edit") return openNodeEditor(id);
+      if (operation==="add") return openNodeEditor("",id);
+      if (operation==="delete") {
+        const total=[]; walkNodes([located.node],node=>total.push(node));
+        if (!confirm(`確定刪除「${located.node.label}」${total.length>1 ? `及其 ${total.length-1} 個下層項目` : ""}嗎？`)) return;
+        located.nodes.splice(located.index,1); closeNodeEditor(); renderNodeTree(); setContentDirty(); return;
+      }
+      const offset=operation==="up" ? -1 : 1, target=located.index+offset;
+      if (target<0 || target>=located.nodes.length) return;
+      [located.nodes[located.index],located.nodes[target]]=[located.nodes[target],located.nodes[located.index]];
+      renderNodeTree(); setContentDirty();
+    }
+    function fillDialogueStage() {
+      const stage=elements.dialogueStage.value;
+      const lines=state.content?.dialogue?.[stage] || [];
+      elements.dialogueLines.value=lines.join("\n");
+      elements.dialogueCount.textContent=`目前 ${lines.length} 種話術`;
+    }
+    function applyDialogueStage() {
+      const stage=elements.dialogueStage.value;
+      const lines=elements.dialogueLines.value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+      if (lines.length<10) { setStatus(elements.contentStatus,"每個對話階段至少需要 10 種話術。",true); return; }
+      state.content.dialogue[stage]=lines;
+      elements.dialogueCount.textContent=`目前 ${lines.length} 種話術`;
+      setContentDirty(); setStatus(elements.contentStatus,"話術已套用，請按「發布設定」才會更新前台。");
+    }
+    function showContentMode(mode) {
+      elements.contentModes.forEach(button=>button.classList.toggle("active",button.dataset.contentMode===mode));
+      elements.treeView.hidden=mode!=="tree"; elements.dialogueView.hidden=mode!=="dialogue";
+      if (mode==="dialogue") fillDialogueStage();
+    }
+    async function loadContent() {
+      if (state.contentBusy) return;
+      if (state.contentDirty && !confirm("尚未發布的變更會消失，確定重新載入嗎？")) return;
+      state.contentBusy=true; elements.reloadContent.disabled=true; elements.publishContent.disabled=true;
+      setStatus(elements.contentStatus,"正在載入內容設定…");
+      try {
+        const data=await api("/api/content");
+        state.content=JSON.parse(JSON.stringify(data.config || {schemaVersion:1,tree:[],dialogue:{}}));
+        state.content.tree=Array.isArray(state.content.tree) ? state.content.tree : [];
+        state.content.dialogue=state.content.dialogue && typeof state.content.dialogue==="object" ? state.content.dialogue : {};
+        state.contentRevision=Number(data.revision || 0); state.contentUpdatedAt=data.updatedAt || null; state.contentLoaded=true;
+        renderNodeTree();
+        elements.dialogueStage.replaceChildren();
+        Object.entries(DIALOGUE_STAGES).forEach(([value,label])=>{ const option=document.createElement("option"); option.value=value; option.textContent=label; elements.dialogueStage.appendChild(option); });
+        fillDialogueStage(); closeNodeEditor(); setContentDirty(false); setStatus(elements.contentStatus,"");
+      } catch (error) { setStatus(elements.contentStatus,error.message,true); }
+      finally { state.contentBusy=false; elements.reloadContent.disabled=false; elements.publishContent.disabled=!state.contentDirty; }
+    }
+    async function publishContent() {
+      if (!state.contentDirty || state.contentBusy) return;
+      state.contentBusy=true; elements.publishContent.disabled=true; elements.reloadContent.disabled=true;
+      setStatus(elements.contentStatus,"正在發布內容設定…");
+      try {
+        const data=await api("/api/content",{method:"PUT",body:JSON.stringify({config:state.content,revision:state.contentRevision})});
+        state.contentRevision=Number(data.revision || state.contentRevision+1); state.contentUpdatedAt=data.updatedAt || null;
+        try { localStorage.removeItem("helper-content-cache-v1"); } catch {}
+        setContentDirty(false); setStatus(elements.contentStatus,"已發布，問答集與對話引導會在下次開啟時讀取新內容。");
+      } catch (error) { setStatus(elements.contentStatus,error.message,true); }
+      finally { state.contentBusy=false; elements.reloadContent.disabled=false; elements.publishContent.disabled=!state.contentDirty; }
+    }
+
     async function showTab(name) {
       elements.tabs.forEach((tab)=>tab.classList.toggle("active",tab.dataset.tab===name));
-      elements.messagesPanel.hidden=name!=="messages"; elements.permissionsPanel.hidden=name!=="permissions";
+      elements.messagesPanel.hidden=name!=="messages"; elements.contentPanel.hidden=name!=="content"; elements.permissionsPanel.hidden=name!=="permissions";
+      if (name==="content" && !state.contentLoaded) await loadContent();
       if (name==="permissions" && !state.adminsLoaded) await loadAdmins();
     }
     elements.tabs.forEach((tab)=>tab.addEventListener("click",()=>showTab(tab.dataset.tab)));
     elements.search.addEventListener("input",renderMessages); elements.type.addEventListener("change",renderMessages); elements.conversation.addEventListener("change",renderMessages);
     elements.refresh.addEventListener("click",()=>loadMessages({reset:true})); elements.loadMore.addEventListener("click",()=>loadMessages()); elements.candidateSearch.addEventListener("input",renderAdmins);
     elements.manualForm.addEventListener("submit",async(event)=>{ event.preventDefault(); const success=await addAdmin({user_id:elements.uid.value.trim(),display_name:elements.name.value.trim()}); if (success) { elements.uid.value=""; elements.name.value=""; } });
+    elements.contentModes.forEach(button=>button.addEventListener("click",()=>showContentMode(button.dataset.contentMode)));
+    elements.reloadContent.addEventListener("click",loadContent); elements.publishContent.addEventListener("click",publishContent);
+    elements.addRoot.addEventListener("click",()=>openNodeEditor()); elements.nodeTree.addEventListener("click",handleNodeAction);
+    elements.nodeType.addEventListener("change",syncNodeTypeFields); elements.nodeForm.addEventListener("submit",applyNodeEditor); elements.cancelNode.addEventListener("click",closeNodeEditor);
+    elements.addSpecialAction.addEventListener("click",()=>createSpecialActionRow());
+    elements.dialogueStage.addEventListener("change",fillDialogueStage); elements.dialogueLines.addEventListener("input",()=>{ const count=elements.dialogueLines.value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).length; elements.dialogueCount.textContent=`目前 ${count} 種話術（尚未套用）`; }); elements.applyDialogue.addEventListener("click",applyDialogueStage);
     async function start() {
       if (LIFF_ID==="YOUR_LIFF_ID") { setStatus(elements.messageStatus,"請先將 admin.html 裡的 YOUR_LIFF_ID 改成目前使用的 LIFF ID。",true); return; }
       try {

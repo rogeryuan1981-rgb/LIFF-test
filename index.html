@@ -60,6 +60,8 @@
     .answer { padding:0 17px 17px; border-top:1px solid #edf3f0; }
     .answer h3 { margin:15px 0 6px; font-size:14px; }
     .answer p { margin:0; color:#41534c; line-height:1.7; white-space:pre-line; }
+    .answer-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+    .answer-action { min-height:40px; padding:8px 12px; border:1px solid #9ed9bd; border-radius:11px; background:#fff; color:var(--green-dark); font-weight:800; cursor:pointer; }
     .empty { padding:32px 16px; border:1px dashed var(--line); border-radius:17px; background:white; color:var(--muted); text-align:center; }
     .finish-bar { position:fixed; z-index:8; left:50%; bottom:0; width:min(100%,760px); padding:10px 18px calc(10px + env(safe-area-inset-bottom)); translate:-50% 0; background:linear-gradient(180deg,rgba(243,250,247,0),rgba(243,250,247,.96) 24%); }
     .feedback-button { width:100%; min-height:52px; border:0; border-radius:15px; background:var(--green); color:white; font-weight:800; cursor:pointer; box-shadow:0 10px 22px rgba(6,199,85,.20); }
@@ -135,13 +137,14 @@
 </div>
 
 <script>
-  // 建立 LIFF App 後，請將 YOUR_LIFF_ID 換成實際的 LIFF ID。
   const LIFF_ID = "2011870813-C7Krkv36";
   const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
   const SESSION_KEY = "helper-liff-session-v3";
   const SESSION_TTL = 15 * 60 * 1000;
+  const CONTENT_CACHE_KEY = "helper-content-cache-v1";
+  const CONTENT_CACHE_TTL = 5 * 60 * 1000;
 
-  const faqs = [
+  let faqs = [
     { category:"身分辨識", question:"長者辨識失敗、很難辨識，或沒有人卻喊出名字", keywords:["臉部辨識","人臉","空氣辨識","偵測不到"], answer:"1. 補傳未戴帽子、口罩或頭巾的清晰正面大頭照，並以 ZIP 或 RAR 壓縮檔寄送。\n2. 與機器人保持在 1 公尺內，五官完整出現在畫面框中。\n3. 刪除機器人內的舊版專案，避免版本衝突。" },
     { category:"身分辨識", question:"機器人叫錯長者的名字", keywords:["叫錯名字","辨識錯人","名字不對"], answer:"重新拍攝清晰正面照片並上傳後台，再進行模型重新訓練與派發。" },
     { category:"身分辨識", question:"機器人為什麼稱呼長者為「測試者」", keywords:["測試者","稱謂"], answer:"系統辨識失敗後，如果使用者選擇直接進入測量模式，機器人會以「測試者」稱呼。" },
@@ -189,6 +192,7 @@
   let selectedCategory = null;
   let lastViewedQuestion = "未指定問題";
   let userDisplayName = "";
+  let categoryIcons = { "身分辨識":"◉", "數據上傳":"↥", "生理量測":"♡", "機器人操作":"▣", "硬體與網路":"⌁", "行政與帳務":"▤" };
 
   function readSessionCache() {
     try {
@@ -217,12 +221,56 @@
     return String(value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   }
 
+  function readContentCache() {
+    try {
+      const cached=JSON.parse(localStorage.getItem(CONTENT_CACHE_KEY) || "null");
+      return cached?.expiresAt>Date.now() ? cached.config : null;
+    } catch { return null; }
+  }
+  function writeContentCache(config) {
+    try { localStorage.setItem(CONTENT_CACHE_KEY,JSON.stringify({config,expiresAt:Date.now()+CONTENT_CACHE_TTL})); } catch {}
+  }
+  function flattenKnowledgeTree(tree) {
+    const items=[];
+    function visit(nodes,path=[]) {
+      (nodes || []).filter(node=>node.active!==false).forEach(node=>{
+        const nextPath=[...path,node];
+        if (node.type==="answer" || node.answer) {
+          items.push({
+            category:path[0]?.label || node.label,
+            path:nextPath.map(item=>item.label),
+            question:node.label,
+            keywords:Array.isArray(node.keywords) ? node.keywords : [],
+            answer:node.answer || "",
+            actions:Array.isArray(node.actions) ? node.actions : [],
+          });
+        } else visit(node.children || [],nextPath);
+      });
+    }
+    visit(tree || []); return items;
+  }
+  async function loadContentConfiguration() {
+    let config=readContentCache();
+    if (!config) {
+      try {
+        const response=await fetch(`${API_BASE}/api/content`);
+        const data=await response.json().catch(()=>({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+        config=data.config; if (config) writeContentCache(config);
+      } catch (error) { console.warn("無法載入後台內容設定，暫時使用內建題庫。",error); }
+    }
+    if (!Array.isArray(config?.tree) || !config.tree.length) return;
+    const dynamicFaqs=flattenKnowledgeTree(config.tree);
+    if (!dynamicFaqs.length) return;
+    faqs=dynamicFaqs;
+    categoryIcons=Object.fromEntries(config.tree.filter(node=>node.active!==false).map(node=>[node.label,node.icon || "•"]));
+  }
+
   function createCategoryButtons() {
     const categories = [...new Set(faqs.map(item => item.category))];
-    const icons = { "身分辨識":"◉", "數據上傳":"↥", "生理量測":"♡", "機器人操作":"▣", "硬體與網路":"⌁", "行政與帳務":"▤" };
     chips.innerHTML = categories.map(category => `
       <button class="category-card" data-category="${escapeHtml(category)}">
-        <span class="category-icon" aria-hidden="true">${icons[category] || "•"}</span>
+        <span class="category-icon" aria-hidden="true">${escapeHtml(categoryIcons[category] || "•")}</span>
         <span class="category-name">${escapeHtml(category)}</span>
         <span class="category-count">${faqs.filter(item => item.category === category).length} 個常見問題</span>
       </button>
@@ -244,7 +292,7 @@
 
     const filtered = faqs.filter(item => {
       const categoryMatch = !selectedCategory || item.category === selectedCategory;
-      const text = [item.question, item.answer, ...item.keywords].join(" ").toLocaleLowerCase("zh-Hant");
+      const text = [item.question, item.answer, ...(item.path || []), ...item.keywords].join(" ").toLocaleLowerCase("zh-Hant");
       return categoryMatch && (!keyword || text.includes(keyword));
     });
 
@@ -254,12 +302,13 @@
     results.innerHTML = filtered.length ? filtered.map((item, index) => `
       <details data-question="${escapeHtml(item.question)}">
         <summary>
-          <span class="tag">${escapeHtml(item.category)}</span>
+          <span class="tag">${escapeHtml(item.path?.slice(0,-1).join(" ＞ ") || item.category)}</span>
           <span class="question">${escapeHtml(item.question)}</span>
         </summary>
         <div class="answer">
           <h3>處置方式</h3>
           <p>${escapeHtml(item.answer)}</p>
+          ${item.actions?.length ? `<div class="answer-actions">${item.actions.map(action=>`<button class="answer-action" type="button" data-special-action="${escapeHtml(encodeURIComponent(JSON.stringify(action)))}">${escapeHtml(action.label)}</button>`).join("")}</div>` : ""}
         </div>
       </details>
     `).join("") : `<div class="empty">找不到符合的問題。<br>請更換關鍵字，或回到 LINE@ 詢問客服。</div>`;
@@ -282,6 +331,23 @@
   results.addEventListener("toggle", event => {
     if (event.target.open && event.target.dataset.question) lastViewedQuestion = event.target.dataset.question;
   }, true);
+  results.addEventListener("click",async event=>{
+    const button=event.target.closest("[data-special-action]"); if (!button) return;
+    try { await performSpecialAction(JSON.parse(decodeURIComponent(button.dataset.specialAction))); }
+    catch (error) { console.error(error); alert("目前無法執行這項功能，請稍後再試。"); }
+  });
+
+  async function performSpecialAction(action) {
+    if (action.type==="phone") { location.href=`tel:${String(action.value).replace(/[^+\d#*,;]/g,"")}`; return; }
+    if (action.type==="url") {
+      if (window.liff?.isInClient()) await liff.openWindow({url:action.value,external:true});
+      else location.href=action.value;
+      return;
+    }
+    if (action.type==="line_message" && window.liff?.isInClient()) { await liff.sendMessages([{type:"text",text:action.value}]); return; }
+    if (navigator.clipboard) await navigator.clipboard.writeText(action.value);
+    alert(action.type==="line_message" ? "訊息已複製，請貼到 LINE@ 對話。" : "內容已複製。");
+  }
 
   function openFeedback() { modal.classList.add("show"); }
   document.querySelector("#feedbackButton").addEventListener("click", openFeedback);
@@ -372,9 +438,14 @@
     }
   }
 
-  createCategoryButtons();
-  render();
-  initializeLiff();
+  async function startPage() {
+    const contentPromise=loadContentConfiguration();
+    const liffPromise=initializeLiff();
+    await contentPromise;
+    createCategoryButtons(); render();
+    await liffPromise;
+  }
+  startPage();
 </script>
 </body>
 </html>
