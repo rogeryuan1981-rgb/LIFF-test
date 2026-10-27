@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0a7d47">
-  <title>小幫手｜對話引導</title>
+  <title>拉娃小幫手｜對話引導</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     :root {
@@ -23,13 +23,14 @@
     .boot-dots i { width:7px; height:7px; border-radius:50%; background:#88a397; animation:pulse 1s infinite; }
     button { font:inherit; }
     .app { width:min(100%,760px); min-height:100vh; margin:auto; background:linear-gradient(180deg,#f8fcfa 0%,var(--wash) 100%); }
-    .topbar { position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid rgba(220,233,227,.9); background:rgba(248,252,250,.93); backdrop-filter:blur(14px); }
+    .topbar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid rgba(220,233,227,.9); background:rgba(248,252,250,.93); backdrop-filter:blur(14px); }
     .brand { display:flex; align-items:center; gap:10px; min-width:0; }
     .avatar-logo { display:grid; place-items:center; width:42px; height:42px; border-radius:14px; background:linear-gradient(145deg,#0b9857,#056a3b); color:#fff; font-weight:900; box-shadow:0 8px 20px rgba(6,199,85,.22); }
     .brand-title { font-weight:900; }
     .brand-subtitle { margin-top:2px; color:var(--muted); font-size:12px; }
-    .header-actions { display:flex; gap:7px; }
+    .header-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:7px; margin-left:auto; }
     .header-button { padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--green-dark); font-size:12px; font-weight:800; text-decoration:none; cursor:pointer; }
+    .header-button[hidden] { display:none; }
     .chat { display:flex; flex-direction:column; gap:13px; min-height:calc(100vh - 84px); padding:20px 16px calc(34px + env(safe-area-inset-bottom)); }
     .row { display:flex; align-items:flex-end; gap:8px; animation:rise .2s ease-out; }
     .row.user { justify-content:flex-end; }
@@ -69,7 +70,7 @@
   <div id="bootScreen" class="boot-screen" role="status" aria-live="polite">
     <div class="boot-card">
       <div class="boot-logo" aria-hidden="true">拉</div>
-      <div>正在準備小幫手…</div>
+      <div>正在準備拉娃小幫手…</div>
       <div class="boot-dots" aria-hidden="true"><i></i><i></i><i></i></div>
     </div>
   </div>
@@ -78,12 +79,13 @@
       <div class="brand">
         <div class="avatar-logo" aria-hidden="true">拉</div>
         <div>
-          <div class="brand-title">小幫手</div>
+          <div class="brand-title">拉娃小幫手</div>
           <div id="connectionStatus" class="brand-subtitle">互動式服務查詢</div>
         </div>
       </div>
       <div class="header-actions">
-        <a class="header-button" href="index.html">問答集模式</a>
+        <a class="header-button" href="index.html?mode=faq">問答集模式</a>
+        <a id="adminLink" class="header-button" href="admin.html" hidden>管理中心</a>
         <button id="finishButton" class="header-button" type="button">結束查詢</button>
       </div>
     </header>
@@ -103,9 +105,10 @@
   </div>
 
   <script>
-    const LIFF_ID = "2011870813-C7Krkv36";
-    const ASSISTANT_NAME = "小幫手";
-    const SESSION_KEY = "lawa-liff-session-v1";
+    const LIFF_ID = "YOUR_LIFF_ID";
+    const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
+    const ASSISTANT_NAME = "拉娃小幫手";
+    const SESSION_KEY = "lawa-liff-session-v2";
     const SESSION_TTL = 15 * 60 * 1000;
 
     function readSessionCache() {
@@ -355,6 +358,7 @@
     const modal = document.querySelector("#feedbackModal");
     const status = document.querySelector("#connectionStatus");
     const bootScreen = document.querySelector("#bootScreen");
+    const adminLink = document.querySelector("#adminLink");
     const randomHistory = new Map();
     let userDisplayName = "";
     let selectedPath = [];
@@ -482,6 +486,26 @@
     modal.querySelectorAll("[data-feedback]").forEach(button=>button.addEventListener("click",()=>{
       const result=button.dataset.feedback; modal.classList.remove("show"); if (result!=="cancel") returnToLine(result);
     }));
+    async function detectAdmin(currentUserId) {
+      const cached=readSessionCache();
+      if (cached?.userId===currentUserId && typeof cached?.isAdmin==="boolean") {
+        adminLink.hidden=!cached.isAdmin;
+        return;
+      }
+      const idToken=liff.getIDToken();
+      if (!idToken) return;
+      try {
+        const response=await fetch(`${API_BASE}/api/me`,{headers:{Authorization:`Bearer ${idToken}`}});
+        const data=await response.json().catch(()=>({}));
+        if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+        const isAdmin=Boolean(data.isAdmin);
+        adminLink.hidden=!isAdmin;
+        writeSessionCache({userId:data.viewer?.userId || currentUserId,displayName:data.viewer?.displayName || userDisplayName,isAdmin});
+      } catch (error) {
+        console.warn("無法確認管理員身分。",error);
+        adminLink.hidden=true;
+      }
+    }
     async function initialize() {
       if (LIFF_ID!=="YOUR_LIFF_ID" && window.liff) {
         try {
@@ -492,13 +516,15 @@
           }
           const cached=readSessionCache();
           const tokenInfo=liff.getDecodedIDToken();
-          userDisplayName=(cached?.displayName || tokenInfo?.name || "").trim();
+          const currentUserId=tokenInfo?.sub || "";
+          userDisplayName=((cached?.userId===currentUserId ? cached.displayName : "") || tokenInfo?.name || "").trim();
           if (!userDisplayName) {
             const profile=await liff.getProfile();
             userDisplayName=(profile?.displayName || "").trim();
           }
           if (!userDisplayName) throw new Error("無法取得 LINE 暱稱");
-          writeSessionCache({displayName:userDisplayName});
+          writeSessionCache({userId:currentUserId,displayName:userDisplayName});
+          await detectAdmin(currentUserId);
         } catch (error) {
           console.warn(error);
           status.textContent="無法取得 LINE 暱稱";

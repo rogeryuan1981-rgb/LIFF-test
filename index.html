@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#06c755">
-  <title>小幫手｜服務查詢</title>
+  <title>拉娃小幫手｜服務查詢</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     :root { --green:#06c755; --green-dark:#05813a; --ink:#18302a; --muted:#61726b; --line:#d9e8e1; --wash:#f3faf7; }
@@ -27,7 +27,7 @@
     .status[hidden] { display:none; }
     .admin-link { padding:8px 12px; border-radius:999px; background:var(--ink); color:white; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 7px 18px rgba(24,48,42,.16); }
     .admin-link[hidden] { display:none; }
-    .conversation-link { padding:8px 12px; border:1px solid #9ed9bd; border-radius:999px; background:white; color:var(--green-dark); font-size:12px; font-weight:800; text-decoration:none; white-space:nowrap; }
+    .conversation-link { padding:8px 12px; border:1px solid #9ed9bd; border-radius:999px; background:white; color:var(--green-dark); font-size:12px; font-weight:800; text-decoration:none; white-space:nowrap; cursor:pointer; }
     h1 { margin:0 0 8px; font-size:clamp(30px,8vw,42px); letter-spacing:-.04em; }
     .lead { margin:0 0 20px; color:var(--muted); line-height:1.65; }
     .search { width:100%; min-height:56px; padding:0 18px; border:2px solid var(--line); border-radius:16px; background:white; color:var(--ink); outline:none; box-shadow:0 10px 28px rgba(22,72,55,.08); }
@@ -83,10 +83,11 @@
 </div>
 <main>
   <header>
-    <div class="brand">小幫手</div>
+    <div class="brand">拉娃小幫手</div>
     <div class="header-actions">
       <a class="conversation-link" href="conversation.html">對話引導</a>
       <a id="adminLink" class="admin-link" href="admin.html" hidden>管理中心</a>
+      <button id="finishButton" class="conversation-link" type="button">結束查詢</button>
       <div id="status" class="status" role="alert" hidden></div>
     </div>
   </header>
@@ -121,9 +122,9 @@
 
 <script>
   // 建立 LIFF App 後，請將 YOUR_LIFF_ID 換成實際的 LIFF ID。
-  const LIFF_ID = "2011870813-C7Krkv36";
+  const LIFF_ID = "YOUR_LIFF_ID";
   const API_BASE = "https://customer-liff-webhook.rogeryuan1981.workers.dev";
-  const SESSION_KEY = "lawa-liff-session-v1";
+  const SESSION_KEY = "lawa-liff-session-v2";
   const SESSION_TTL = 15 * 60 * 1000;
 
   const faqs = [
@@ -169,6 +170,7 @@
   const statusBox = document.querySelector("#status");
   const bootScreen = document.querySelector("#bootScreen");
   const adminLink = document.querySelector("#adminLink");
+  const finishButton = document.querySelector("#finishButton");
   const greetingTitle = document.querySelector("#greetingTitle");
   const modal = document.querySelector("#feedbackModal");
   let selectedCategory = null;
@@ -268,7 +270,9 @@
     if (event.target.open && event.target.dataset.question) lastViewedQuestion = event.target.dataset.question;
   }, true);
 
-  document.querySelector("#feedbackButton").addEventListener("click", () => modal.classList.add("show"));
+  function openFeedback() { modal.classList.add("show"); }
+  document.querySelector("#feedbackButton").addEventListener("click", openFeedback);
+  finishButton.addEventListener("click", openFeedback);
   modal.addEventListener("click", event => {
     if (event.target === modal) modal.classList.remove("show");
   });
@@ -302,9 +306,9 @@
     });
   });
 
-  async function detectAdmin() {
+  async function detectAdmin(currentUserId) {
     const cached = readSessionCache();
-    if (typeof cached?.isAdmin === "boolean") {
+    if (cached?.userId === currentUserId && typeof cached?.isAdmin === "boolean") {
       adminLink.hidden = !cached.isAdmin;
       return;
     }
@@ -317,13 +321,29 @@
         headers: { Authorization:`Bearer ${idToken}` }
       });
       const data = await response.json().catch(() => ({}));
-      const isAdmin = Boolean(response.ok && data.ok && data.isAdmin);
+      if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      const isAdmin = Boolean(data.isAdmin);
       adminLink.hidden = !isAdmin;
-      writeSessionCache({ isAdmin });
+      writeSessionCache({ userId:data.viewer?.userId || currentUserId, displayName:data.viewer?.displayName || userDisplayName, isAdmin });
     } catch (error) {
       console.warn("無法確認管理員身分。", error);
       adminLink.hidden = true;
     }
+  }
+
+  async function applyDefaultHomeMode() {
+    if (new URLSearchParams(location.search).get("mode") === "faq") return false;
+    try {
+      const response = await fetch(`${API_BASE}/api/public-settings`);
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.ok && data.homeMode === "conversation") {
+        location.replace("conversation.html");
+        return true;
+      }
+    } catch (error) {
+      console.warn("無法讀取預設首頁模式，改用問答集模式。", error);
+    }
+    return false;
   }
 
   async function initializeLiff() {
@@ -341,10 +361,12 @@
       }
       const tokenInfo = liff.getDecodedIDToken();
       const cached = readSessionCache();
-      userDisplayName = (cached?.displayName || tokenInfo?.name || "").trim();
-      if (userDisplayName) writeSessionCache({ displayName:userDisplayName });
+      const currentUserId = tokenInfo?.sub || "";
+      userDisplayName = ((cached?.userId === currentUserId ? cached.displayName : "") || tokenInfo?.name || "").trim();
+      if (userDisplayName) writeSessionCache({ userId:currentUserId, displayName:userDisplayName });
       if (userDisplayName) greetingTitle.textContent = `嗨，${userDisplayName}`;
-      await detectAdmin();
+      await detectAdmin(currentUserId);
+      redirecting = await applyDefaultHomeMode();
     } catch (error) {
       console.error(error);
       statusBox.textContent = "LINE 連線失敗，請重新開啟";
