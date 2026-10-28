@@ -1,0 +1,24 @@
+{
+  "size": { "width": 2500, "height": 843 },
+  "selected": true,
+  "name": "B-已完成綁定",
+  "chatBarText": "小幫手",
+  "areas": [
+    {
+      "bounds": { "x": 0, "y": 0, "width": 1250, "height": 843 },
+      "action": {
+        "type": "uri",
+        "label": "服務查詢",
+        "uri": "https://liff.line.me/2011870813-C7Krkv36?entry=faq"
+      }
+    },
+    {
+      "bounds": { "x": 1250, "y": 0, "width": 1250, "height": 843 },
+      "action": {
+        "type": "uri",
+        "label": "聯絡客服",
+        "uri": "https://liff.line.me/2011870813-C7Krkv36?entry=conversation"
+      }
+    }
+  ]
+}

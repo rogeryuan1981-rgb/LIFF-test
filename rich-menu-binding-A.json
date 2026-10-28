@@ -1,0 +1,16 @@
+{
+  "size": { "width": 2500, "height": 843 },
+  "selected": true,
+  "name": "A-尚未綁定",
+  "chatBarText": "開始綁定",
+  "areas": [
+    {
+      "bounds": { "x": 0, "y": 0, "width": 2500, "height": 843 },
+      "action": {
+        "type": "uri",
+        "label": "開始綁定",
+        "uri": "https://liff.line.me/2011870813-C7Krkv36?entry=binding"
+      }
+    }
+  ]
+}

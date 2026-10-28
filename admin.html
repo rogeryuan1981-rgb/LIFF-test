@@ -27,8 +27,8 @@
     .viewer { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; }
     .viewer[hidden] { display:none; }
     .viewer img { width:32px; height:32px; border-radius:50%; object-fit:cover; }
-    .tabs { display:flex; gap:5px; margin-bottom:14px; padding:5px; border:1px solid var(--line); border-radius:14px; background:#e9eef4; }
-    .tab { flex:1; min-height:42px; border:0; border-radius:10px; background:transparent; color:var(--muted); font-weight:800; cursor:pointer; }
+    .tabs { display:flex; gap:5px; margin-bottom:14px; padding:5px; border:1px solid var(--line); border-radius:14px; background:#e9eef4; overflow-x:auto; }
+    .tab { flex:1 0 max-content; min-height:42px; padding:0 12px; border:0; border-radius:10px; background:transparent; color:var(--muted); font-weight:800; cursor:pointer; }
     .tab.active { background:#fff; color:var(--navy); box-shadow:0 3px 12px rgba(19,38,63,.10); }
     .tab-panel[hidden] { display:none; }
     .panel { border:1px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:var(--shadow); }
@@ -139,6 +139,20 @@
     .template-description { margin-top:4px; color:var(--muted); font-size:12px; line-height:1.5; }
     .template-time { margin-top:4px; color:var(--muted); font-size:11px; }
     .template-buttons { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+    .rich-menu-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .rich-menu-card { overflow:hidden; }
+    .rich-menu-preview { display:block; width:100%; aspect-ratio:2500/843; object-fit:cover; border-bottom:1px solid var(--line); background:#eef2f6; }
+    .rich-menu-body { padding:16px; }
+    .rich-menu-title { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:7px; }
+    .rich-menu-code { margin:10px 0 13px; padding:9px 10px; border-radius:10px; background:#f3f6f9; color:var(--muted); font:11px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
+    .rich-menu-actions { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+    .rich-menu-actions .checkbox-field { min-height:36px; }
+    .rich-menu-list { display:grid; gap:7px; margin-top:14px; }
+    .rich-menu-row { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; padding:10px 11px; border:1px solid var(--line); border-radius:12px; }
+    .rich-menu-row strong { display:block; font-size:13px; }
+    .rich-menu-row span { display:block; margin-top:3px; color:var(--muted); font:10px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
+    .status-chip { padding:3px 7px; border-radius:999px; background:#eef2f6; color:var(--muted); font-size:11px; font-weight:800; white-space:nowrap; }
+    .status-chip.active { background:#e8f9ef; color:#08783a; }
     @media (max-width:680px) {
       .shell { padding-top:14px; }
       .topbar { align-items:flex-start; }
@@ -153,7 +167,7 @@
       .content-head,.node-row { align-items:stretch; grid-template-columns:1fr; }
       .content-head { display:grid; }
       .content-actions,.node-buttons { justify-content:flex-start; }
-      .form-grid,.dialogue-controls,.special-action,.simulator-grid,.template-form,.template-card { grid-template-columns:1fr; }
+      .form-grid,.dialogue-controls,.special-action,.simulator-grid,.template-form,.template-card,.rich-menu-grid { grid-template-columns:1fr; }
       .field.full { grid-column:auto; }
       .template-buttons { justify-content:flex-start; }
     }
@@ -179,6 +193,7 @@
       <button class="tab active" type="button" data-tab="messages">對話紀錄</button>
       <button class="tab" type="button" data-tab="content">內容設定</button>
       <button class="tab" type="button" data-tab="profiles">使用者綁定</button>
+      <button class="tab" type="button" data-tab="richMenus">圖文選單</button>
       <button class="tab" type="button" data-tab="permissions">管理員權限</button>
     </nav>
 
@@ -317,6 +332,42 @@
       </section>
     </section>
 
+    <section id="richMenusPanel" class="tab-panel" hidden>
+      <p id="richMenuStatus" class="status" hidden></p>
+      <div class="rich-menu-grid">
+        <section class="panel rich-menu-card">
+          <img class="rich-menu-preview" src="rich-menu-binding-2500x843.jpg" alt="A 尚未綁定圖文選單預覽">
+          <div class="rich-menu-body">
+            <div class="rich-menu-title"><h2>A｜尚未綁定</h2><span id="richMenuAState" class="status-chip">尚未確認</span></div>
+            <div class="hint">提供「開始綁定」入口。建立後會自動設為所有使用者的預設圖文選單；已個別套用 B 的使用者不受影響。</div>
+            <div id="richMenuAId" class="rich-menu-code">尚未建立</div>
+            <div class="rich-menu-actions"><button id="deployRichMenuA" class="button" type="button">建立並啟用 A</button></div>
+          </div>
+        </section>
+
+        <section class="panel rich-menu-card">
+          <img class="rich-menu-preview" src="rich-menu-helper-2500x843.jpg" alt="B 已完成綁定圖文選單預覽">
+          <div class="rich-menu-body">
+            <div class="rich-menu-title"><h2>B｜已完成綁定</h2><span id="richMenuBState" class="status-chip">尚未確認</span></div>
+            <div class="hint">提供「服務查詢」與「聯絡客服」。系統會自動保存 B 的 ID，後續完成綁定時直接套用。</div>
+            <div id="richMenuBId" class="rich-menu-code">尚未建立</div>
+            <div class="rich-menu-actions">
+              <button id="deployRichMenuB" class="button" type="button">建立並啟用 B</button>
+              <label class="checkbox-field"><input id="relinkExistingUsers" type="checkbox" checked>同步更新既有綁定者</label>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel permissions-panel" style="margin-top:14px">
+        <div class="section-head">
+          <div><h2>LINE 上的圖文選單</h2><div class="hint">這裡列出由 Messaging API 建立的圖文選單。重複建立不會自動刪除舊版本。</div></div>
+          <button id="reloadRichMenus" class="button secondary" type="button">重新整理</button>
+        </div>
+        <div id="richMenuList" class="rich-menu-list"></div>
+      </section>
+    </section>
+
     <section id="permissionsPanel" class="tab-panel" hidden>
       <p id="permissionStatus" class="status" hidden></p>
       <div class="permissions-grid">
@@ -365,12 +416,13 @@
       messages:[], nextBefore:null, idToken:null, loading:false,
       viewerUserId:null, admins:[], candidates:[], adminBusy:false, adminsLoaded:false,
       bindings:[], bindingsLoaded:false, bindingBusy:false,
+      richMenus:[], richMenuSettings:{aId:null,bId:null}, richMenuDefaultId:null, richMenusLoaded:false, richMenuBusy:false,
       content:null, contentRevision:0, contentUpdatedAt:null, contentLoaded:false, contentBusy:false, contentDirty:false,
       templates:[], templatesLoaded:false, templateBusy:false,
     };
     const elements = {
       tabs:[...document.querySelectorAll("[data-tab]")],
-      messagesPanel:document.querySelector("#messagesPanel"), contentPanel:document.querySelector("#contentPanel"), profilesPanel:document.querySelector("#profilesPanel"), permissionsPanel:document.querySelector("#permissionsPanel"),
+      messagesPanel:document.querySelector("#messagesPanel"), contentPanel:document.querySelector("#contentPanel"), profilesPanel:document.querySelector("#profilesPanel"), richMenusPanel:document.querySelector("#richMenusPanel"), permissionsPanel:document.querySelector("#permissionsPanel"),
       viewer:document.querySelector("#viewer"), viewerName:document.querySelector("#viewerName"), viewerImage:document.querySelector("#viewerImage"),
       messageStatus:document.querySelector("#messageStatus"), messageCount:document.querySelector("#messageCount"), messageList:document.querySelector("#messageList"),
       search:document.querySelector("#searchInput"), type:document.querySelector("#typeFilter"), conversation:document.querySelector("#conversationFilter"),
@@ -379,6 +431,7 @@
       adminList:document.querySelector("#adminList"), candidateList:document.querySelector("#candidateList"), manualForm:document.querySelector("#manualForm"),
       uid:document.querySelector("#uidInput"), name:document.querySelector("#nameInput"), candidateSearch:document.querySelector("#candidateSearch"),
       profileStatus:document.querySelector("#profileStatus"), profileCount:document.querySelector("#profileCount"), profileSearch:document.querySelector("#profileSearch"), profileList:document.querySelector("#profileList"), reloadProfiles:document.querySelector("#reloadProfilesButton"),
+      richMenuStatus:document.querySelector("#richMenuStatus"), richMenuAState:document.querySelector("#richMenuAState"), richMenuBState:document.querySelector("#richMenuBState"), richMenuAId:document.querySelector("#richMenuAId"), richMenuBId:document.querySelector("#richMenuBId"), richMenuList:document.querySelector("#richMenuList"), deployRichMenuA:document.querySelector("#deployRichMenuA"), deployRichMenuB:document.querySelector("#deployRichMenuB"), relinkExistingUsers:document.querySelector("#relinkExistingUsers"), reloadRichMenus:document.querySelector("#reloadRichMenus"),
       contentStatus:document.querySelector("#contentStatus"), contentDirty:document.querySelector("#contentDirty"), reloadContent:document.querySelector("#reloadContentButton"), publishContent:document.querySelector("#publishContentButton"),
       contentModes:[...document.querySelectorAll("[data-content-mode]")], treeView:document.querySelector("#treeView"), dialogueView:document.querySelector("#dialogueView"), templatesView:document.querySelector("#templatesView"),
       nodeTree:document.querySelector("#nodeTree"), addRoot:document.querySelector("#addRootButton"), nodeForm:document.querySelector("#nodeForm"), nodeFormTitle:document.querySelector("#nodeFormTitle"),
@@ -524,6 +577,12 @@
         binding_not_found:"找不到這筆綁定資料。",
         binding_unlink_failed:"解除綁定或切換圖文選單失敗，請稍後再試。",
         rich_menu_link_failed:"B 圖文選單指派失敗，請確認 Worker 變數與圖文選單 ID。",
+        invalid_rich_menu:"圖文選單設定格式不正確。",
+        invalid_rich_menu_image:"圖文選單圖片格式或大小不正確。",
+        rich_menu_status_failed:"無法讀取 LINE 圖文選單狀態，請確認 Channel Access Token。",
+        rich_menu_deploy_failed:"建立圖文選單失敗，請確認 Channel Access Token 與圖片設定。",
+        rich_menu_activate_failed:"啟用既有圖文選單失敗，請確認該選單仍存在。",
+        rich_menu_storage_unavailable:"無法儲存圖文選單設定，請確認 D1 內容設定資料表已建立。",
       })[code] || "操作失敗，請稍後再試。";
     }
     async function api(path, options={}) {
@@ -952,17 +1011,116 @@
       finally { state.bindingBusy=false; }
     }
 
+    function renderRichMenus() {
+      const ids=new Set(state.richMenus.map(item=>item.richMenuId));
+      const aId=state.richMenuSettings.aId || null, bId=state.richMenuSettings.bId || null;
+      elements.richMenuAId.textContent=aId || "尚未建立";
+      elements.richMenuBId.textContent=bId || "尚未建立";
+      const aIsDefault=Boolean(aId && aId===state.richMenuDefaultId);
+      elements.richMenuAState.textContent=aIsDefault ? "目前預設" : aId && ids.has(aId) ? "已建立" : "尚未建立";
+      elements.richMenuAState.classList.toggle("active",aIsDefault);
+      elements.richMenuBState.textContent=bId && ids.has(bId) ? "使用中" : bId ? "ID 已保存" : "尚未建立";
+      elements.richMenuBState.classList.toggle("active",Boolean(bId && ids.has(bId)));
+      elements.deployRichMenuA.textContent=aIsDefault ? "重新建立 A" : aId && ids.has(aId) ? "啟用現有 A" : "建立並啟用 A";
+      elements.deployRichMenuB.textContent=bId && ids.has(bId) ? "重新建立 B" : "建立並啟用 B";
+      elements.richMenuList.replaceChildren();
+      if (!state.richMenus.length) {
+        const empty=document.createElement("div"); empty.className="empty"; empty.textContent="目前沒有由 Messaging API 建立的圖文選單"; elements.richMenuList.appendChild(empty); return;
+      }
+      state.richMenus.forEach((item)=>{
+        const row=document.createElement("div"); row.className="rich-menu-row";
+        const main=document.createElement("div"), name=document.createElement("strong"), id=document.createElement("span"), chip=document.createElement("div");
+        name.textContent=item.name || "未命名圖文選單"; id.textContent=item.richMenuId || ""; main.append(name,id);
+        const labels=[];
+        if (item.richMenuId===state.richMenuDefaultId) labels.push("預設");
+        if (item.richMenuId===aId) labels.push("A");
+        if (item.richMenuId===bId) labels.push("B");
+        chip.className=`status-chip${labels.length ? " active" : ""}`; chip.textContent=labels.join("・") || "舊版本";
+        row.append(main,chip); elements.richMenuList.appendChild(row);
+      });
+    }
+
+    async function loadRichMenus() {
+      if (state.richMenuBusy) return;
+      state.richMenuBusy=true; elements.reloadRichMenus.disabled=true;
+      setStatus(elements.richMenuStatus,"正在讀取 LINE 圖文選單狀態…");
+      try {
+        const data=await api("/api/rich-menus");
+        state.richMenus=data.items || []; state.richMenuSettings=data.settings || {aId:null,bId:null}; state.richMenuDefaultId=data.defaultId || null; state.richMenusLoaded=true;
+        renderRichMenus(); setStatus(elements.richMenuStatus,"");
+      } catch (error) { setStatus(elements.richMenuStatus,error.message,true); }
+      finally { state.richMenuBusy=false; elements.reloadRichMenus.disabled=false; elements.deployRichMenuA.disabled=false; elements.deployRichMenuB.disabled=false; }
+    }
+
+    function blobToBase64(blob) {
+      return new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(String(reader.result || "").split(",")[1] || "");
+        reader.onerror=()=>reject(reader.error || new Error("無法讀取圖片"));
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function loadRichMenuAssets(type) {
+      const assets=type==="A"
+        ? {json:"rich-menu-binding-A.json",image:"rich-menu-binding-2500x843.jpg"}
+        : {json:"rich-menu-service-B.json",image:"rich-menu-helper-2500x843.jpg"};
+      const [menuResponse,imageResponse]=await Promise.all([
+        fetch(new URL(assets.json,location.href),{cache:"no-store"}),
+        fetch(new URL(assets.image,location.href),{cache:"no-store"}),
+      ]);
+      if (!menuResponse.ok || !imageResponse.ok) throw new Error("找不到圖文選單設定檔或圖片，請確認檔案已上傳到 GitHub Pages。");
+      const menu=await menuResponse.json(), image=await imageResponse.blob();
+      return {menu,imageBase64:await blobToBase64(image),contentType:image.type || "image/jpeg"};
+    }
+
+    async function deployRichMenu(type) {
+      if (state.richMenuBusy) return;
+      const label=type==="A" ? "A（尚未綁定）" : "B（已完成綁定）";
+      const existingId=type==="A" ? state.richMenuSettings.aId : state.richMenuSettings.bId;
+      const canActivateExisting=type==="A" && existingId && state.richMenus.some(item=>item.richMenuId===existingId) && existingId!==state.richMenuDefaultId;
+      if (canActivateExisting) {
+        if (!confirm(`確定將現有 ${label} 設為預設圖文選單嗎？`)) return;
+        state.richMenuBusy=true; elements.deployRichMenuA.disabled=true; elements.deployRichMenuB.disabled=true; elements.reloadRichMenus.disabled=true;
+        setStatus(elements.richMenuStatus,`正在啟用現有 ${label}…`);
+        try {
+          await api("/api/rich-menus/activate",{method:"POST",body:JSON.stringify({type,richMenuId:existingId})});
+          state.richMenuBusy=false; await loadRichMenus(); setStatus(elements.richMenuStatus,`${label} 已設為預設圖文選單。`);
+        } catch (error) { setStatus(elements.richMenuStatus,error.message,true); }
+        finally { state.richMenuBusy=false; elements.deployRichMenuA.disabled=false; elements.deployRichMenuB.disabled=false; elements.reloadRichMenus.disabled=false; }
+        return;
+      }
+      if (!confirm(`確定建立新的 ${label} 圖文選單嗎？\n\n系統會保留舊版本，並將新版本設為目前使用版本。`)) return;
+      state.richMenuBusy=true; elements.deployRichMenuA.disabled=true; elements.deployRichMenuB.disabled=true; elements.reloadRichMenus.disabled=true;
+      setStatus(elements.richMenuStatus,`正在建立 ${label} 圖文選單，請勿關閉頁面…`);
+      try {
+        const assets=await loadRichMenuAssets(type);
+        const data=await api("/api/rich-menus/deploy",{
+          method:"POST",
+          body:JSON.stringify({type,...assets,relinkExisting:type==="B" && elements.relinkExistingUsers.checked}),
+        });
+        const relink=data.relink;
+        const suffix=relink ? `；既有綁定者成功 ${relink.linked} 人、失敗 ${relink.failed} 人` : "";
+        setStatus(elements.richMenuStatus,`${label} 已建立並啟用${suffix}。`);
+        state.richMenuBusy=false; await loadRichMenus();
+        setStatus(elements.richMenuStatus,`${label} 已建立並啟用${suffix}。`);
+      } catch (error) { setStatus(elements.richMenuStatus,error.message,true); }
+      finally { state.richMenuBusy=false; elements.deployRichMenuA.disabled=false; elements.deployRichMenuB.disabled=false; elements.reloadRichMenus.disabled=false; }
+    }
+
     async function showTab(name) {
       elements.tabs.forEach((tab)=>tab.classList.toggle("active",tab.dataset.tab===name));
-      elements.messagesPanel.hidden=name!=="messages"; elements.contentPanel.hidden=name!=="content"; elements.profilesPanel.hidden=name!=="profiles"; elements.permissionsPanel.hidden=name!=="permissions";
+      elements.messagesPanel.hidden=name!=="messages"; elements.contentPanel.hidden=name!=="content"; elements.profilesPanel.hidden=name!=="profiles"; elements.richMenusPanel.hidden=name!=="richMenus"; elements.permissionsPanel.hidden=name!=="permissions";
       if (name==="content" && !state.contentLoaded) await loadContent();
       if (name==="profiles" && !state.bindingsLoaded) await loadBindings();
+      if (name==="richMenus" && !state.richMenusLoaded) await loadRichMenus();
       if (name==="permissions" && !state.adminsLoaded) await loadAdmins();
     }
     elements.tabs.forEach((tab)=>tab.addEventListener("click",()=>showTab(tab.dataset.tab)));
     elements.search.addEventListener("input",renderMessages); elements.type.addEventListener("change",renderMessages); elements.conversation.addEventListener("change",renderMessages);
     elements.refresh.addEventListener("click",()=>loadMessages({reset:true})); elements.loadMore.addEventListener("click",()=>loadMessages()); elements.candidateSearch.addEventListener("input",renderAdmins);
     elements.profileSearch.addEventListener("input",renderBindings); elements.reloadProfiles.addEventListener("click",loadBindings);
+    elements.reloadRichMenus.addEventListener("click",loadRichMenus); elements.deployRichMenuA.addEventListener("click",()=>deployRichMenu("A")); elements.deployRichMenuB.addEventListener("click",()=>deployRichMenu("B"));
     elements.manualForm.addEventListener("submit",async(event)=>{ event.preventDefault(); const success=await addAdmin({user_id:elements.uid.value.trim(),display_name:elements.name.value.trim()}); if (success) { elements.uid.value=""; elements.name.value=""; } });
     elements.contentModes.forEach(button=>button.addEventListener("click",()=>showContentMode(button.dataset.contentMode)));
     elements.reloadContent.addEventListener("click",loadContent); elements.publishContent.addEventListener("click",publishContent);
