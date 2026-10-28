@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>小幫手｜開始綁定</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    :root { --green:#078455; --green-dark:#0b3c31; --mint:#eef8f4; --line:#d9e6e1; --ink:#17322c; --muted:#687b75; --coral:#e65d45; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:linear-gradient(180deg,#f7fbf9 0,#edf7f3 100%); color:var(--ink); font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif; }
+    button,input,select,textarea { font:inherit; }
+    .shell { width:min(760px,100%); margin:auto; padding:18px 16px calc(36px + env(safe-area-inset-bottom)); }
+    .brand { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .brand-mark { display:grid; place-items:center; width:48px; height:48px; border-radius:16px; background:linear-gradient(145deg,#087b52,#00a45f); color:white; font-size:19px; font-weight:900; box-shadow:0 10px 24px rgba(7,132,85,.2); }
+    h1,h2,p { margin:0; }
+    h1 { font-size:22px; }
+    .brand p { margin-top:3px; color:var(--muted); font-size:13px; }
+    .panel { padding:18px; border:1px solid var(--line); border-radius:20px; background:rgba(255,255,255,.94); box-shadow:0 14px 34px rgba(18,65,52,.08); }
+    .intro { margin-bottom:14px; }
+    .intro h2 { font-size:20px; }
+    .intro p { margin-top:7px; color:var(--muted); line-height:1.7; font-size:14px; }
+    .profile { display:grid; grid-template-columns:56px minmax(0,1fr); gap:12px; align-items:center; padding:13px; margin-bottom:16px; border-radius:16px; background:var(--mint); }
+    .profile img,.profile-placeholder { width:56px; height:56px; border-radius:50%; object-fit:cover; background:#dcebe5; }
+    .profile-placeholder { display:grid; place-items:center; color:var(--green); font-weight:900; }
+    .profile-name { font-weight:900; }
+    .profile-id { margin-top:4px; color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+    .field { display:grid; gap:7px; }
+    .field.full { grid-column:1/-1; }
+    label,.label { font-size:13px; font-weight:800; }
+    .required::after { content:" *"; color:var(--coral); }
+    input,select,textarea { width:100%; min-height:46px; padding:10px 12px; border:1px solid #cfded8; border-radius:12px; background:white; color:var(--ink); outline:none; }
+    textarea { min-height:100px; resize:vertical; }
+    input:focus,select:focus,textarea:focus { border-color:#66ae8f; box-shadow:0 0 0 3px rgba(7,132,85,.1); }
+    .checks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .check { display:flex; align-items:center; gap:8px; min-height:44px; padding:9px 11px; border:1px solid var(--line); border-radius:12px; background:#fbfdfc; font-size:13px; cursor:pointer; }
+    .check input { width:18px; min-height:18px; margin:0; accent-color:var(--green); }
+    .consent { display:flex; align-items:flex-start; gap:9px; margin-top:15px; color:var(--muted); font-size:12px; line-height:1.6; }
+    .consent input { flex:0 0 auto; width:18px; min-height:18px; margin:2px 0 0; accent-color:var(--green); }
+    .status { margin-top:13px; padding:11px 13px; border-radius:12px; background:#edf8f2; color:#176141; font-size:13px; line-height:1.6; }
+    .status.error { background:#fff0ed; color:#b33d2d; }
+    .actions { display:flex; gap:9px; margin-top:16px; }
+    .button { flex:1; min-height:49px; border:0; border-radius:14px; background:var(--green); color:white; font-weight:900; cursor:pointer; }
+    .button.secondary { flex:0 0 auto; padding:0 16px; border:1px solid var(--line); background:white; color:var(--green-dark); }
+    .button.danger { color:#b33d2d; }
+    .button:disabled { opacity:.55; cursor:wait; }
+    .success { text-align:center; padding:28px 18px; }
+    .success-icon { display:grid; place-items:center; width:64px; height:64px; margin:0 auto 13px; border-radius:50%; background:#e6f7ee; color:var(--green); font-size:30px; font-weight:900; }
+    .success p { margin-top:9px; color:var(--muted); line-height:1.7; }
+    .success .button { width:100%; margin-top:18px; }
+    .boot { position:fixed; inset:0; z-index:10; display:grid; place-items:center; background:#f4faf7; transition:opacity .2s; }
+    .boot.hidden { opacity:0; pointer-events:none; }
+    .boot-card { text-align:center; }
+    .spinner { width:42px; height:42px; margin:auto; border:4px solid #d8e9e1; border-top-color:var(--green); border-radius:50%; animation:spin .8s linear infinite; }
+    .boot-card p { margin-top:11px; color:var(--muted); }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    [hidden] { display:none!important; }
+    @media (max-width:580px) { .shell{padding-inline:12px}.panel{padding:15px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.checks{grid-template-columns:1fr}.actions{flex-direction:column}.button.secondary{flex-basis:49px} }
+  </style>
+</head>
+<body>
+  <div id="boot" class="boot"><div class="boot-card"><div class="spinner"></div><p>正在確認 LINE 身分…</p></div></div>
+  <main class="shell">
+    <header class="brand"><div class="brand-mark">幫</div><div><h1>小幫手</h1><p>使用者綁定</p></div></header>
+    <section id="formPanel" class="panel">
+      <div class="intro"><h2 id="pageTitle">開始綁定</h2><p>完成基本資料後，即可使用服務查詢與對話引導。LINE 身分由系統安全取得，不需要自行輸入 UID。</p></div>
+      <div class="profile">
+        <img id="profileImage" alt="LINE 頭像" hidden>
+        <div id="profilePlaceholder" class="profile-placeholder">LINE</div>
+        <div><div id="profileName" class="profile-name">讀取中</div><div id="profileId" class="profile-id"></div></div>
+      </div>
+      <form id="bindingForm">
+        <div class="grid">
+          <label class="field full"><span class="required">使用者單位</span><input id="organization" required maxlength="200" placeholder="例如：○○文化健康站／○○單位"></label>
+          <label class="field"><span class="required">使用者身分／角色</span><select id="role" required><option value="">請選擇</option><option>文化健康站工作人員</option><option>專案辦公室</option><option>合作單位</option><option>設備或技術服務人員</option><option>其他</option></select></label>
+          <label id="otherRoleField" class="field" hidden><span class="required">其他角色</span><input id="otherRole" maxlength="100" placeholder="請說明您的角色"></label>
+          <div class="field full"><span class="label">關注或負責項目（可複選）</span><div class="checks" id="contentItems">
+            <label class="check"><input type="checkbox" value="身分辨識">身分辨識</label>
+            <label class="check"><input type="checkbox" value="數據上傳">數據上傳</label>
+            <label class="check"><input type="checkbox" value="生理量測">生理量測</label>
+            <label class="check"><input type="checkbox" value="機器人操作">機器人操作</label>
+            <label class="check"><input type="checkbox" value="硬體與網路">硬體與網路</label>
+            <label class="check"><input type="checkbox" value="行政與帳務">行政與帳務</label>
+          </div></div>
+          <label class="field full"><span>其他補充（選填）</span><textarea id="notes" maxlength="2000" placeholder="若有其他需求或說明，可填寫於此"></textarea></label>
+        </div>
+        <label class="consent"><input id="consent" type="checkbox" required><span>我同意小幫手為提供服務、身分識別與後續協助，儲存上述資料及 LINE UID；我可以日後回到此頁修改或解除綁定。</span></label>
+        <div id="status" class="status" hidden></div>
+        <div class="actions"><button id="deleteButton" class="button secondary danger" type="button" hidden>解除綁定</button><button id="submitButton" class="button" type="submit">完成綁定</button></div>
+      </form>
+    </section>
+    <section id="successPanel" class="panel success" hidden><div class="success-icon">✓</div><h2>綁定完成</h2><p id="successMessage">已為您開放小幫手服務。</p><button id="closeButton" class="button" type="button">回到 LINE</button></section>
+  </main>
+  <script>
+    const LIFF_ID="2011870813-C7Krkv36";
+    const API_BASE="https://customer-liff-webhook.rogeryuan1981.workers.dev";
+    const elements={
+      boot:document.querySelector("#boot"),formPanel:document.querySelector("#formPanel"),successPanel:document.querySelector("#successPanel"),form:document.querySelector("#bindingForm"),
+      pageTitle:document.querySelector("#pageTitle"),image:document.querySelector("#profileImage"),placeholder:document.querySelector("#profilePlaceholder"),name:document.querySelector("#profileName"),uid:document.querySelector("#profileId"),
+      organization:document.querySelector("#organization"),role:document.querySelector("#role"),otherRoleField:document.querySelector("#otherRoleField"),otherRole:document.querySelector("#otherRole"),items:document.querySelector("#contentItems"),notes:document.querySelector("#notes"),consent:document.querySelector("#consent"),
+      status:document.querySelector("#status"),submit:document.querySelector("#submitButton"),remove:document.querySelector("#deleteButton"),close:document.querySelector("#closeButton"),successMessage:document.querySelector("#successMessage")
+    };
+    let idToken="",viewer=null,isBound=false;
+    function setStatus(message,error=false){elements.status.textContent=message;elements.status.classList.toggle("error",error);elements.status.hidden=!message;}
+    function errorText(code){return ({invalid_token:"LINE 登入已失效，請關閉後重新開啟。",invalid_binding_profile:"請確認單位、角色及同意欄位是否完整。",binding_profile_too_large:"填寫內容過長，請精簡後再送出。",binding_storage_unavailable:"綁定資料庫尚未完成設定。",binding_unlink_failed:"資料尚未解除，請稍後再試。"})[code]||"操作失敗，請稍後再試。";}
+    async function api(path,options={}){const response=await fetch(`${API_BASE}${path}`,{...options,headers:{Authorization:`Bearer ${idToken}`,...(options.body?{"Content-Type":"application/json"}:{}),...(options.headers||{})}});const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(errorText(data.error));return data;}
+    function showViewer(data){viewer=data;elements.name.textContent=data.displayName||"LINE 使用者";elements.uid.textContent=`LINE UID：${data.userId||""}`;if(data.pictureUrl){elements.image.src=data.pictureUrl;elements.image.hidden=false;elements.placeholder.hidden=true;}}
+    function setRole(value){const fixed=[...elements.role.options].map(option=>option.value);if(value&&fixed.includes(value)){elements.role.value=value;elements.otherRole.value="";}else if(value){elements.role.value="其他";elements.otherRole.value=value;}elements.otherRoleField.hidden=elements.role.value!=="其他";elements.otherRole.required=elements.role.value==="其他";}
+    function fillProfile(profile){if(!profile)return;elements.organization.value=profile.organization||"";setRole(profile.role||"");elements.notes.value=profile.notes||"";const selected=new Set(profile.contentItems||[]);elements.items.querySelectorAll("input").forEach(input=>input.checked=selected.has(input.value));elements.consent.checked=true;isBound=true;elements.pageTitle.textContent="更新綁定資料";elements.submit.textContent="儲存更新";elements.remove.hidden=false;}
+    async function initialize(){let redirecting=false;try{await liff.init({liffId:LIFF_ID});if(!liff.isLoggedIn()){redirecting=true;liff.login({redirectUri:location.href});return;}idToken=liff.getIDToken();if(!idToken)throw new Error("無法取得 LINE 登入資訊。");const data=await api("/api/profile/me");showViewer(data.viewer||{});fillProfile(data.profile);}catch(error){setStatus(error.message||"無法開啟綁定頁面。",true);}finally{if(!redirecting)elements.boot.classList.add("hidden");}}
+    elements.role.addEventListener("change",()=>{elements.otherRoleField.hidden=elements.role.value!=="其他";elements.otherRole.required=elements.role.value==="其他";});
+    elements.form.addEventListener("submit",async event=>{event.preventDefault();setStatus("");const role=elements.role.value==="其他"?elements.otherRole.value.trim():elements.role.value;const contentItems=[...elements.items.querySelectorAll("input:checked")].map(input=>input.value);elements.submit.disabled=true;elements.remove.disabled=true;try{const data=await api("/api/profile",{method:"POST",body:JSON.stringify({organization:elements.organization.value.trim(),role,contentItems,notes:elements.notes.value.trim(),consent:elements.consent.checked,extraAnswers:{}})});isBound=true;elements.formPanel.hidden=true;elements.successPanel.hidden=false;elements.successMessage.textContent=data.menuLinked?"已為您切換至完整服務選單，請回到 LINE 繼續使用。":"資料已完成綁定；服務選單正在同步，稍後重新開啟聊天室即可。";}catch(error){setStatus(error.message,true);}finally{elements.submit.disabled=false;elements.remove.disabled=false;}});
+    elements.remove.addEventListener("click",async()=>{if(!isBound||!confirm("確定解除綁定嗎？解除後將回到初始選單，需重新綁定才能使用服務。"))return;elements.remove.disabled=true;elements.submit.disabled=true;try{await api("/api/profile",{method:"DELETE"});isBound=false;elements.form.reset();elements.remove.hidden=true;elements.pageTitle.textContent="開始綁定";elements.submit.textContent="完成綁定";setStatus("已解除綁定，重新開啟聊天室後會顯示初始選單。");}catch(error){setStatus(error.message,true);}finally{elements.remove.disabled=false;elements.submit.disabled=false;}});
+    elements.close.addEventListener("click",()=>{if(window.liff?.isInClient())liff.closeWindow();else location.href="index.html?mode=faq";});
+    initialize();
+  </script>
+</body>
+</html>

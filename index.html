@@ -143,6 +143,13 @@
   const SESSION_TTL = 15 * 60 * 1000;
   const CONTENT_CACHE_KEY = "helper-content-cache-v1";
   const CONTENT_CACHE_TTL = 5 * 60 * 1000;
+  const ENTRY = new URLSearchParams(location.search).get("entry") || "";
+
+  function localPage(name) {
+    const url = new URL(name, location.href); url.search = ""; url.hash = ""; return url.href;
+  }
+  if (ENTRY === "binding") location.replace(localPage("binding.html"));
+  if (ENTRY === "conversation") location.replace(localPage("conversation.html"));
 
   let faqs = [
     { category:"身分辨識", question:"長者辨識失敗、很難辨識，或沒有人卻喊出名字", keywords:["臉部辨識","人臉","空氣辨識","偵測不到"], answer:"1. 補傳未戴帽子、口罩或頭巾的清晰正面大頭照，並以 ZIP 或 RAR 壓縮檔寄送。\n2. 與機器人保持在 1 公尺內，五官完整出現在畫面框中。\n3. 刪除機器人內的舊版專案，避免版本衝突。" },
@@ -428,6 +435,16 @@
     }
   }
 
+  async function verifyBindingAccess() {
+    const idToken = liff.getIDToken();
+    if (!idToken) throw new Error("無法取得 LINE 登入資訊");
+    const response = await fetch(`${API_BASE}/api/profile/me`, { headers:{ Authorization:`Bearer ${idToken}` } });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+    if (!data.accessGranted) { location.replace(localPage("binding.html")); return false; }
+    return true;
+  }
+
   async function initializeLiff() {
     if (LIFF_ID === "YOUR_LIFF_ID" || !window.liff) {
       bootScreen.classList.add("hidden");
@@ -447,6 +464,7 @@
       userDisplayName = ((cached?.userId === currentUserId ? cached.displayName : "") || tokenInfo?.name || "").trim();
       if (userDisplayName) writeSessionCache({ userId:currentUserId, displayName:userDisplayName });
       if (userDisplayName) greetingTitle.textContent = `嗨，${userDisplayName}`;
+      if (!await verifyBindingAccess()) { redirecting = true; return; }
       await detectAdmin(currentUserId);
     } catch (error) {
       console.error(error);
@@ -458,6 +476,7 @@
   }
 
   async function startPage() {
+    if (ENTRY === "binding" || ENTRY === "conversation") return;
     const contentPromise=loadContentConfiguration();
     const liffPromise=initializeLiff();
     await contentPromise;

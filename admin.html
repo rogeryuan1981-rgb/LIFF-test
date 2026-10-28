@@ -69,6 +69,14 @@
     .uid { margin-top:3px; color:var(--muted); font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:11px; overflow-wrap:anywhere; }
     .self { display:inline-block; margin-left:6px; padding:2px 6px; border-radius:999px; background:#e8f9ef; color:#08783a; font-size:11px; }
     .candidate-search { margin-bottom:10px; }
+    .profile-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:9px; margin-bottom:12px; }
+    .binding-list { display:grid; gap:9px; }
+    .binding-card { display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:11px; align-items:center; padding:12px; border:1px solid var(--line); border-radius:14px; background:#fff; }
+    .binding-meta { display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; color:var(--muted); font-size:11px; }
+    .binding-tag { padding:2px 7px; border-radius:999px; background:#eef2f6; }
+    .binding-tag.linked { background:#e8f9ef; color:#08783a; }
+    .binding-tag.error { background:#fff0ee; color:var(--danger); }
+    .binding-buttons { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
     .content-shell { display:grid; gap:14px; }
     .content-panel { padding:16px; }
     .content-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
@@ -138,8 +146,10 @@
       .toolbar,.manual-form { grid-template-columns:1fr; }
       .message-head { display:block; }
       time { display:block; margin-top:4px; }
-      .person { grid-template-columns:40px minmax(0,1fr); }
+      .person,.binding-card { grid-template-columns:40px minmax(0,1fr); }
       .person .button { grid-column:1 / -1; }
+      .binding-buttons { grid-column:1 / -1; justify-content:flex-start; }
+      .profile-toolbar { grid-template-columns:1fr; }
       .content-head,.node-row { align-items:stretch; grid-template-columns:1fr; }
       .content-head { display:grid; }
       .content-actions,.node-buttons { justify-content:flex-start; }
@@ -168,6 +178,7 @@
     <nav class="tabs" aria-label="管理中心分頁">
       <button class="tab active" type="button" data-tab="messages">對話紀錄</button>
       <button class="tab" type="button" data-tab="content">內容設定</button>
+      <button class="tab" type="button" data-tab="profiles">使用者綁定</button>
       <button class="tab" type="button" data-tab="permissions">管理員權限</button>
     </nav>
 
@@ -297,6 +308,15 @@
       </div>
     </section>
 
+    <section id="profilesPanel" class="tab-panel" hidden>
+      <p id="profileStatus" class="status" hidden></p>
+      <section class="panel permissions-panel">
+        <div class="section-head"><div><h2>使用者綁定資料</h2><div class="hint">可查詢綁定狀態、重新指派 B 圖文選單，或解除使用者綁定。</div></div><span id="profileCount" class="badge-count">0</span></div>
+        <div class="profile-toolbar"><input id="profileSearch" type="search" placeholder="搜尋暱稱、UID、單位或角色"><button id="reloadProfilesButton" class="button" type="button">重新整理</button></div>
+        <div id="profileList" class="binding-list"></div>
+      </section>
+    </section>
+
     <section id="permissionsPanel" class="tab-panel" hidden>
       <p id="permissionStatus" class="status" hidden></p>
       <div class="permissions-grid">
@@ -344,12 +364,13 @@
     const state = {
       messages:[], nextBefore:null, idToken:null, loading:false,
       viewerUserId:null, admins:[], candidates:[], adminBusy:false, adminsLoaded:false,
+      bindings:[], bindingsLoaded:false, bindingBusy:false,
       content:null, contentRevision:0, contentUpdatedAt:null, contentLoaded:false, contentBusy:false, contentDirty:false,
       templates:[], templatesLoaded:false, templateBusy:false,
     };
     const elements = {
       tabs:[...document.querySelectorAll("[data-tab]")],
-      messagesPanel:document.querySelector("#messagesPanel"), contentPanel:document.querySelector("#contentPanel"), permissionsPanel:document.querySelector("#permissionsPanel"),
+      messagesPanel:document.querySelector("#messagesPanel"), contentPanel:document.querySelector("#contentPanel"), profilesPanel:document.querySelector("#profilesPanel"), permissionsPanel:document.querySelector("#permissionsPanel"),
       viewer:document.querySelector("#viewer"), viewerName:document.querySelector("#viewerName"), viewerImage:document.querySelector("#viewerImage"),
       messageStatus:document.querySelector("#messageStatus"), messageCount:document.querySelector("#messageCount"), messageList:document.querySelector("#messageList"),
       search:document.querySelector("#searchInput"), type:document.querySelector("#typeFilter"), conversation:document.querySelector("#conversationFilter"),
@@ -357,6 +378,7 @@
       permissionStatus:document.querySelector("#permissionStatus"), adminCount:document.querySelector("#adminCount"), candidateCount:document.querySelector("#candidateCount"),
       adminList:document.querySelector("#adminList"), candidateList:document.querySelector("#candidateList"), manualForm:document.querySelector("#manualForm"),
       uid:document.querySelector("#uidInput"), name:document.querySelector("#nameInput"), candidateSearch:document.querySelector("#candidateSearch"),
+      profileStatus:document.querySelector("#profileStatus"), profileCount:document.querySelector("#profileCount"), profileSearch:document.querySelector("#profileSearch"), profileList:document.querySelector("#profileList"), reloadProfiles:document.querySelector("#reloadProfilesButton"),
       contentStatus:document.querySelector("#contentStatus"), contentDirty:document.querySelector("#contentDirty"), reloadContent:document.querySelector("#reloadContentButton"), publishContent:document.querySelector("#publishContentButton"),
       contentModes:[...document.querySelectorAll("[data-content-mode]")], treeView:document.querySelector("#treeView"), dialogueView:document.querySelector("#dialogueView"), templatesView:document.querySelector("#templatesView"),
       nodeTree:document.querySelector("#nodeTree"), addRoot:document.querySelector("#addRootButton"), nodeForm:document.querySelector("#nodeForm"), nodeFormTitle:document.querySelector("#nodeFormTitle"),
@@ -498,6 +520,10 @@
         invalid_template_content:"模板內容已損壞，請刪除後重新建立。",
         invalid_template_name:"請輸入 100 字內的模板名稱。",
         invalid_template_id:"模板編號不正確。",
+        binding_storage_unavailable:"尚未建立使用者綁定資料表，請先執行 D1 移轉檔。",
+        binding_not_found:"找不到這筆綁定資料。",
+        binding_unlink_failed:"解除綁定或切換圖文選單失敗，請稍後再試。",
+        rich_menu_link_failed:"B 圖文選單指派失敗，請確認 Worker 變數與圖文選單 ID。",
       })[code] || "操作失敗，請稍後再試。";
     }
     async function api(path, options={}) {
@@ -884,15 +910,59 @@
       finally { state.contentBusy=false; elements.reloadContent.disabled=false; elements.publishContent.disabled=!state.contentDirty; }
     }
 
+    function bindingAvatar(item) {
+      if (item.pictureUrl) { const image=document.createElement("img"); image.className="avatar"; image.src=item.pictureUrl; image.alt=""; return image; }
+      const fallback=document.createElement("div"); fallback.className="avatar"; fallback.textContent=(item.displayName || "?").slice(0,1); return fallback;
+    }
+    function renderBindings() {
+      const keyword=elements.profileSearch.value.trim().toLocaleLowerCase("zh-Hant");
+      const filtered=state.bindings.filter(item=>[item.displayName,item.userId,item.organization,item.role,...(item.contentItems||[])].filter(Boolean).join(" ").toLocaleLowerCase("zh-Hant").includes(keyword));
+      elements.profileCount.textContent=filtered.length; elements.profileList.replaceChildren();
+      if (!filtered.length) { const empty=document.createElement("div"); empty.className="empty"; empty.textContent=state.bindings.length?"找不到符合的綁定資料":"目前沒有已綁定使用者"; elements.profileList.appendChild(empty); return; }
+      filtered.forEach(item=>{
+        const card=document.createElement("article"); card.className="binding-card"; card.appendChild(bindingAvatar(item));
+        const info=document.createElement("div"), name=document.createElement("div"); name.className="name"; name.textContent=item.displayName || "未命名使用者";
+        const uid=document.createElement("div"); uid.className="uid"; uid.textContent=item.userId;
+        const meta=document.createElement("div"); meta.className="binding-meta";
+        [item.organization,item.role,...(item.contentItems||[])].filter(Boolean).forEach(value=>{const tag=document.createElement("span");tag.className="binding-tag";tag.textContent=value;meta.appendChild(tag);});
+        const menu=document.createElement("span"); menu.className=`binding-tag ${item.menuStatus==="linked"?"linked":"error"}`; menu.textContent=item.menuStatus==="linked"?"B 選單已指派":"B 選單待處理"; meta.appendChild(menu);
+        info.append(name,uid,meta); card.appendChild(info);
+        const buttons=document.createElement("div"); buttons.className="binding-buttons";
+        if (item.menuStatus!=="linked") { const retry=document.createElement("button"); retry.type="button"; retry.className="mini-button"; retry.textContent="重試選單"; retry.addEventListener("click",()=>retryBinding(item)); buttons.appendChild(retry); }
+        const remove=document.createElement("button"); remove.type="button"; remove.className="mini-button danger"; remove.textContent="解除綁定"; remove.addEventListener("click",()=>removeBinding(item)); buttons.appendChild(remove); card.appendChild(buttons); elements.profileList.appendChild(card);
+      });
+    }
+    async function loadBindings() {
+      if (state.bindingBusy) return; state.bindingBusy=true; elements.reloadProfiles.disabled=true; setStatus(elements.profileStatus,"正在載入綁定資料…");
+      try { const data=await api("/api/profiles?limit=500"); state.bindings=data.items||[]; state.bindingsLoaded=true; renderBindings(); setStatus(elements.profileStatus,""); }
+      catch (error) { setStatus(elements.profileStatus,error.message,true); }
+      finally { state.bindingBusy=false; elements.reloadProfiles.disabled=false; }
+    }
+    async function retryBinding(item) {
+      if (state.bindingBusy) return; state.bindingBusy=true; setStatus(elements.profileStatus,`正在重新指派「${item.displayName||item.userId}」的 B 圖文選單…`);
+      try { await api(`/api/profiles/${encodeURIComponent(item.userId)}/retry-menu`,{method:"POST"}); state.bindingBusy=false; await loadBindings(); setStatus(elements.profileStatus,"B 圖文選單已重新指派。"); }
+      catch (error) { setStatus(elements.profileStatus,error.message,true); }
+      finally { state.bindingBusy=false; }
+    }
+    async function removeBinding(item) {
+      if (state.bindingBusy || !confirm(`確定解除「${item.displayName||item.userId}」的綁定嗎？使用者將回到 A 圖文選單。`)) return;
+      state.bindingBusy=true;
+      try { await api(`/api/profiles/${encodeURIComponent(item.userId)}`,{method:"DELETE"}); state.bindingBusy=false; await loadBindings(); setStatus(elements.profileStatus,"已解除綁定。"); }
+      catch (error) { setStatus(elements.profileStatus,error.message,true); }
+      finally { state.bindingBusy=false; }
+    }
+
     async function showTab(name) {
       elements.tabs.forEach((tab)=>tab.classList.toggle("active",tab.dataset.tab===name));
-      elements.messagesPanel.hidden=name!=="messages"; elements.contentPanel.hidden=name!=="content"; elements.permissionsPanel.hidden=name!=="permissions";
+      elements.messagesPanel.hidden=name!=="messages"; elements.contentPanel.hidden=name!=="content"; elements.profilesPanel.hidden=name!=="profiles"; elements.permissionsPanel.hidden=name!=="permissions";
       if (name==="content" && !state.contentLoaded) await loadContent();
+      if (name==="profiles" && !state.bindingsLoaded) await loadBindings();
       if (name==="permissions" && !state.adminsLoaded) await loadAdmins();
     }
     elements.tabs.forEach((tab)=>tab.addEventListener("click",()=>showTab(tab.dataset.tab)));
     elements.search.addEventListener("input",renderMessages); elements.type.addEventListener("change",renderMessages); elements.conversation.addEventListener("change",renderMessages);
     elements.refresh.addEventListener("click",()=>loadMessages({reset:true})); elements.loadMore.addEventListener("click",()=>loadMessages()); elements.candidateSearch.addEventListener("input",renderAdmins);
+    elements.profileSearch.addEventListener("input",renderBindings); elements.reloadProfiles.addEventListener("click",loadBindings);
     elements.manualForm.addEventListener("submit",async(event)=>{ event.preventDefault(); const success=await addAdmin({user_id:elements.uid.value.trim(),display_name:elements.name.value.trim()}); if (success) { elements.uid.value=""; elements.name.value=""; } });
     elements.contentModes.forEach(button=>button.addEventListener("click",()=>showContentMode(button.dataset.contentMode)));
     elements.reloadContent.addEventListener("click",loadContent); elements.publishContent.addEventListener("click",publishContent);

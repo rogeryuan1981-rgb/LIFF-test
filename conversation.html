@@ -402,6 +402,8 @@
     let selectedPath = [];
     let interactionLocked = false;
 
+    function localPage(name) { const url=new URL(name,location.href); url.search=""; url.hash=""; return url.href; }
+
     function formatTemplate(text, extra={}) {
       const values = { name:userDisplayName, assistant:ASSISTANT_NAME, ...extra };
       return String(text || "").replace(/\{\s*(name|assistant|choice)\s*\}/g, (_, key) => values[key] ?? "");
@@ -594,6 +596,15 @@
         adminLink.hidden=true;
       }
     }
+    async function verifyBindingAccess() {
+      const idToken=liff.getIDToken();
+      if (!idToken) throw new Error("無法取得 LINE 登入資訊");
+      const response=await fetch(`${API_BASE}/api/profile/me`,{headers:{Authorization:`Bearer ${idToken}`}});
+      const data=await response.json().catch(()=>({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      if (!data.accessGranted) { location.replace(localPage("binding.html")); return false; }
+      return true;
+    }
     async function initialize() {
       const contentPromise=loadContentConfiguration();
       if (LIFF_ID!=="YOUR_LIFF_ID" && window.liff) {
@@ -613,6 +624,7 @@
           }
           if (!userDisplayName) throw new Error("無法取得 LINE 暱稱");
           writeSessionCache({userId:currentUserId,displayName:userDisplayName});
+          if (!await verifyBindingAccess()) return;
           await detectAdmin(currentUserId);
         } catch (error) {
           console.warn(error);
