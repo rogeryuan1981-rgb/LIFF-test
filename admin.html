@@ -27,6 +27,8 @@
     .viewer { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; }
     .viewer[hidden] { display:none; }
     .viewer img { width:32px; height:32px; border-radius:50%; object-fit:cover; }
+    .top-actions { display:flex; align-items:center; justify-content:flex-end; gap:9px; }
+    .back-button { min-height:36px; padding:0 11px; }
     .tabs { display:flex; gap:5px; margin-bottom:14px; padding:5px; border:1px solid var(--line); border-radius:14px; background:#e9eef4; overflow-x:auto; }
     .tab { flex:1 0 max-content; min-height:42px; padding:0 12px; border:0; border-radius:10px; background:transparent; color:var(--muted); font-weight:800; cursor:pointer; }
     .tab.active { background:#fff; color:var(--navy); box-shadow:0 3px 12px rgba(19,38,63,.10); }
@@ -160,6 +162,7 @@
     @media (max-width:680px) {
       .shell { padding-top:14px; }
       .topbar { align-items:flex-start; }
+      .top-actions { align-items:flex-end; flex-direction:column-reverse; }
       .viewer span { display:none; }
       .toolbar,.manual-form { grid-template-columns:1fr; }
       .message-head { display:block; }
@@ -189,9 +192,12 @@
           <p class="subtitle">僅限授權管理者查看</p>
         </div>
       </div>
-      <div id="viewer" class="viewer" hidden>
-        <span id="viewerName"></span>
-        <img id="viewerImage" alt="管理者頭像">
+      <div class="top-actions">
+        <button id="backToService" class="button secondary back-button" type="button">返回查詢</button>
+        <div id="viewer" class="viewer" hidden>
+          <span id="viewerName"></span>
+          <img id="viewerImage" alt="管理者頭像">
+        </div>
       </div>
     </header>
 
@@ -437,6 +443,7 @@
     const elements = {
       tabs:[...document.querySelectorAll("[data-tab]")],
       messagesPanel:document.querySelector("#messagesPanel"), contentPanel:document.querySelector("#contentPanel"), profilesPanel:document.querySelector("#profilesPanel"), richMenusPanel:document.querySelector("#richMenusPanel"), permissionsPanel:document.querySelector("#permissionsPanel"),
+      backToService:document.querySelector("#backToService"),
       viewer:document.querySelector("#viewer"), viewerName:document.querySelector("#viewerName"), viewerImage:document.querySelector("#viewerImage"),
       messageStatus:document.querySelector("#messageStatus"), messageCount:document.querySelector("#messageCount"), messageList:document.querySelector("#messageList"),
       search:document.querySelector("#searchInput"), type:document.querySelector("#typeFilter"), conversation:document.querySelector("#conversationFilter"),
@@ -460,6 +467,19 @@
       element.textContent = message;
       element.classList.toggle("error", error);
       element.hidden = !message;
+    }
+    function validServiceReturnUrl(value) {
+      try {
+        const url=new URL(value,location.href), file=url.pathname.split("/").pop() || "index.html";
+        return url.origin===location.origin && ["index.html","conversation.html"].includes(file) ? url.href : null;
+      } catch { return null; }
+    }
+    const referringServiceUrl=validServiceReturnUrl(document.referrer);
+    if (referringServiceUrl) { try { sessionStorage.setItem("helper-admin-return",referringServiceUrl); } catch {} }
+    function returnToService() {
+      let target=referringServiceUrl;
+      if (!target) { try { target=validServiceReturnUrl(sessionStorage.getItem("helper-admin-return")); } catch {} }
+      location.href=target || new URL("index.html?entry=faq",location.href).href;
     }
     function escapeHtml(value) {
       return String(value ?? "").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -1209,6 +1229,7 @@
       if (name==="permissions" && !state.adminsLoaded) await loadAdmins();
     }
     elements.tabs.forEach((tab)=>tab.addEventListener("click",()=>showTab(tab.dataset.tab)));
+    elements.backToService.addEventListener("click",returnToService);
     elements.search.addEventListener("input",renderMessages); elements.type.addEventListener("change",renderMessages); elements.conversation.addEventListener("change",renderMessages);
     elements.refresh.addEventListener("click",()=>loadMessages({reset:true})); elements.loadMore.addEventListener("click",()=>loadMessages()); elements.candidateSearch.addEventListener("input",renderAdmins);
     elements.profileSearch.addEventListener("input",renderBindings); elements.reloadProfiles.addEventListener("click",loadBindings);
